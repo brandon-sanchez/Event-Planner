@@ -75,14 +75,14 @@ function Login() {
           </button>
         </form>
         <p className="text-center text-gray-600 text-sm mt-4">
-        Don't have an account? {""}
-        <button
-          onClick={() => navigate("/signup")}
-          className="text-indigo-600 hover:underline font-semibold"
-        >
-          Sign Up
-        </button>
-      </p>
+          Don't have an account? {""}
+          <button
+            onClick={() => navigate("/signup")}
+            className="text-indigo-600 hover:underline font-semibold"
+          >
+            Sign Up
+          </button>
+        </p>
       </div>
     </div>
   );
