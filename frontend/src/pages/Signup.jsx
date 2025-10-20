@@ -1,7 +1,8 @@
-import { createUserWithEmailAndPassword } from "firebase/auth";
+import { createUserWithEmailAndPassword, signInWithPopup } from "firebase/auth";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { auth } from "../config/firebase";
+import { auth, googleProvider, githubProvider } from "../config/firebase";
+import { GoogleLoginButton, GithubLoginButton } from "react-social-login-buttons";
 
 function Signup() {
   const [email, setEmail] = useState('');
@@ -17,6 +18,34 @@ function Signup() {
 
     try {
       await createUserWithEmailAndPassword(auth, email, password);
+      navigate('/dashboard');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleSignup = async () => {
+    setError('');
+    setLoading(true);
+
+    try {
+      await signInWithPopup(auth, googleProvider);
+      navigate('/dashboard');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGithubSignup = async () => {
+    setError('');
+    setLoading(true);
+
+    try {
+      await signInWithPopup(auth, githubProvider);
       navigate('/dashboard');
     } catch (err) {
       setError(err.message);
@@ -70,13 +99,58 @@ function Signup() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-teal-600 text-white py-2 px-4 rounded-lg hover:bg-teal-700 disabled:bg-teal-300 font-semibold mb-4"
+              className="w-full bg-teal-600 text-white py-2 px-4 rounded-lg hover:bg-teal-700 disabled:bg-teal-300 font-semibold"
             >
               {loading ? 'Creating account...' : 'Sign Up'}
             </button>
           </form>
 
-          <p className="text-center text-gray-600 text-sm">
+          <div className="mt-6">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white text-gray-500">Or sign up with</span>
+              </div>
+            </div>
+
+            <div className="mt-6 grid grid-cols-2 gap-3">
+              <GoogleLoginButton
+                onClick={handleGoogleSignup}
+                disabled={loading}
+                style={{
+                  width: '100%',
+                  fontSize: '14px',
+                  borderRadius: '8px',
+                  padding: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <span>Google</span>
+              </GoogleLoginButton>
+
+              <GithubLoginButton
+                onClick={handleGithubSignup}
+                disabled={loading}
+                style={{
+                  width: '100%',
+                  fontSize: '14px',
+                  borderRadius: '8px',
+                  padding: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <span>GitHub</span>
+              </GithubLoginButton>
+            </div>
+          </div>
+
+          <p className="text-center text-gray-600 text-sm mt-6">
             Already have an account?{' '}
             <button
               onClick={() => navigate('/')}

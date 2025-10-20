@@ -6,7 +6,8 @@ export default function CreateEventModal({ isOpen, onClose, onCreateEvent }) {
     title: '',
     description: '',
     date: '',
-    time: '',
+    startTime: '',
+    endTime: '',
     location: '',
     isVirtual: false,
     color: 'blue',
@@ -28,14 +29,15 @@ export default function CreateEventModal({ isOpen, onClose, onCreateEvent }) {
   };
 
   const handleCreateEvent = () => {
-    if (newEvent.title && newEvent.date && newEvent.time) {
+    if (newEvent.title && newEvent.date && newEvent.startTime && newEvent.endTime) {
       onCreateEvent(newEvent);
       //for resetting form
       setNewEvent({
         title: '',
         description: '',
         date: '',
-        time: '',
+        startTime: '',
+        endTime: '',
         location: '',
         isVirtual: false,
         color: 'blue',
@@ -45,8 +47,8 @@ export default function CreateEventModal({ isOpen, onClose, onCreateEvent }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 backdrop-blur-md flex items-center justify-center z-50 animate-fadeIn">
+      <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl animate-slideUp">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold text-white">Create Group Event</h2>
           <button
@@ -90,22 +92,32 @@ export default function CreateEventModal({ isOpen, onClose, onCreateEvent }) {
             <label htmlFor="virtual" className="text-sm text-gray-300">Virtual Event</label>
           </div>
 
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1">Date</label>
+            <input
+              type="date"
+              value={newEvent.date}
+              onChange={(e) => setNewEvent({ ...newEvent, date: e.target.value })}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+            />
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">Date</label>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Start Time</label>
               <input
-                type="date"
-                value={newEvent.date}
-                onChange={(e) => setNewEvent({ ...newEvent, date: e.target.value })}
+                type="time"
+                value={newEvent.startTime}
+                onChange={(e) => setNewEvent({ ...newEvent, startTime: e.target.value })}
                 className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">Time</label>
+              <label className="block text-sm font-medium text-gray-300 mb-1">End Time</label>
               <input
                 type="time"
-                value={newEvent.time}
-                onChange={(e) => setNewEvent({ ...newEvent, time: e.target.value })}
+                value={newEvent.endTime}
+                onChange={(e) => setNewEvent({ ...newEvent, endTime: e.target.value })}
                 className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
               />
             </div>

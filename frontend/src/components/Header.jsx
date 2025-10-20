@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { signOut } from 'firebase/auth';
 import { auth } from '../config/firebase';
 import { useNavigate } from 'react-router-dom';
@@ -31,11 +31,29 @@ const Avatar = ({ name, size = 'sm' }) => {
 export default function Header() {
   const navigate = useNavigate();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const profileMenuRef = useRef(null);
 
   const currentUser = {
     name: auth.currentUser?.displayName || auth.currentUser?.email?.split('@')[0] || 'User',
     email: auth.currentUser?.email || 'user@example.com'
   };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target)) {
+        setShowProfileMenu(false);
+      }
+    };
+
+    if (showProfileMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showProfileMenu]);
 
   const handleLogout = async () => {
     await signOut(auth);
@@ -49,7 +67,7 @@ export default function Header() {
           <h1 className="text-xl font-semibold">Dashboard</h1>
         </div>
 
-        <div className="relative">
+        <div className="relative" ref={profileMenuRef}>
           <button
             onClick={() => setShowProfileMenu(!showProfileMenu)}
             className="hover:opacity-80 transition-opacity"

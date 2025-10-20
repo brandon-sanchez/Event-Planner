@@ -1,7 +1,8 @@
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword, signInWithPopup } from "firebase/auth";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { auth } from "../config/firebase";
+import { auth, googleProvider, githubProvider } from "../config/firebase";
+import { GoogleLoginButton, GithubLoginButton } from "react-social-login-buttons";
 
 function Login() {
   const [email, setEmail] = useState("");
@@ -17,6 +18,34 @@ function Login() {
 
     try {
       await signInWithEmailAndPassword(auth, email, password);
+      navigate("/dashboard");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    setError("");
+    setLoading(true);
+
+    try {
+      await signInWithPopup(auth, googleProvider);
+      navigate("/dashboard");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGithubLogin = async () => {
+    setError("");
+    setLoading(true);
+
+    try {
+      await signInWithPopup(auth, githubProvider);
       navigate("/dashboard");
     } catch (err) {
       setError(err.message);
@@ -74,7 +103,53 @@ function Login() {
             {loading ? "Logging in..." : "Login"}
           </button>
         </form>
-        <p className="text-center text-gray-600 text-sm mt-4">
+
+        <div className="mt-6">
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-white text-gray-500">Or continue with</span>
+            </div>
+          </div>
+
+          <div className="mt-6 grid grid-cols-2 gap-3">
+            <GoogleLoginButton
+              onClick={handleGoogleLogin}
+              disabled={loading}
+              style={{
+                width: '100%',
+                fontSize: '14px',
+                borderRadius: '8px',
+                padding: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              <span>Google</span>
+            </GoogleLoginButton>
+
+            <GithubLoginButton
+              onClick={handleGithubLogin}
+              disabled={loading}
+              style={{
+                width: '100%',
+                fontSize: '14px',
+                borderRadius: '8px',
+                padding: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              <span>GitHub</span>
+            </GithubLoginButton>
+          </div>
+        </div>
+
+        <p className="text-center text-gray-600 text-sm mt-6">
           Don't have an account? {""}
           <button
             onClick={() => navigate("/signup")}
