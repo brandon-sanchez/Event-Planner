@@ -1,63 +1,39 @@
-import { useState, useEffect, useRef } from 'react';
-import { signOut } from 'firebase/auth';
-import { auth } from '../config/firebase';
-import { useNavigate } from 'react-router-dom';
-
-const getInitials = (name) => {
-  if (!name) return 'U';
-  return name
-    .split(' ')
-    .map(word => word[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2);
-};
-
-// avatar for initials
-const Avatar = ({ name, size = 'sm' }) => {
-  const sizeClasses = {
-    sm: 'w-8 h-8 text-xs',
-    md: 'w-10 h-10 text-sm',
-    lg: 'w-12 h-12 text-base'
-  };
-
-  return (
-    <div className={`${sizeClasses[size]} rounded-full bg-blue-600 flex items-center justify-center text-white font-medium`}>
-      {getInitials(name)}
-    </div>
-  );
-};
+import { useState, useEffect, useRef } from "react";
+import { signOut } from "firebase/auth";
+import { auth } from "../config/firebase";
+import { useNavigate } from "react-router-dom";
+import Avatar from "./Avatar";
+import { getCurrentUser } from "../utils/Utils";
 
 export default function Header() {
   const navigate = useNavigate();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const profileMenuRef = useRef(null);
 
-  const currentUser = {
-    name: auth.currentUser?.displayName || auth.currentUser?.email?.split('@')[0] || 'User',
-    email: auth.currentUser?.email || 'user@example.com'
-  };
+  const currentUser = getCurrentUser(auth);
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target)) {
+      if (
+        profileMenuRef.current &&
+        !profileMenuRef.current.contains(event.target)
+      ) {
         setShowProfileMenu(false);
       }
     };
 
     if (showProfileMenu) {
-      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener("mousedown", handleClickOutside);
     }
 
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [showProfileMenu]);
 
   const handleLogout = async () => {
     await signOut(auth);
-    navigate('/');
+    navigate("/");
   };
 
   return (
@@ -81,8 +57,12 @@ export default function Header() {
                 <div className="font-medium">{currentUser.name}</div>
                 <div className="text-sm text-gray-400">{currentUser.email}</div>
               </div>
-              <button className="w-full text-left px-4 py-2 hover:bg-gray-700">Profile Settings</button>
-              <button className="w-full text-left px-4 py-2 hover:bg-gray-700">My Events</button>
+              <button className="w-full text-left px-4 py-2 hover:bg-gray-700">
+                Profile Settings
+              </button>
+              <button className="w-full text-left px-4 py-2 hover:bg-gray-700">
+                My Events
+              </button>
               <button
                 onClick={handleLogout}
                 className="w-full text-left px-4 py-2 hover:bg-gray-700 text-red-400"

@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { X } from 'lucide-react';
+import { getColorClasses } from '../../utils/Utils';
 
-export default function CreateEventModal({ isOpen, onClose, onCreateEvent }) {
+function CreateEventModal({ isOpen, onClose, onCreateEvent }) {
   const [newEvent, setNewEvent] = useState({
     title: '',
     description: '',
@@ -143,13 +144,7 @@ export default function CreateEventModal({ isOpen, onClose, onCreateEvent }) {
                 <button
                   key={color}
                   onClick={() => setNewEvent({ ...newEvent, color })}
-                  className={`w-8 h-8 rounded-full ${
-                    color === 'blue' ? 'bg-blue-500' :
-                    color === 'orange' ? 'bg-orange-500' :
-                    color === 'purple' ? 'bg-purple-500' :
-                    color === 'green' ? 'bg-green-500' :
-                    'bg-red-500'
-                  } ${newEvent.color === color ? 'ring-2 ring-white' : ''}`}
+                  className={`w-8 h-8 rounded-full ${getColorClasses(color, 'bgDot')} ${newEvent.color === color ? 'ring-2 ring-white' : ''}`}
                 />
               ))}
             </div>
@@ -202,3 +197,5 @@ export default function CreateEventModal({ isOpen, onClose, onCreateEvent }) {
     </div>
   );
 }
+
+export default CreateEventModal;

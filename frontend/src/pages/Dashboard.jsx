@@ -1,5 +1,5 @@
 import Header from '../components/Header';
-import Calendar from '../components/Calendar';
+import Calendar from '../components/Calendar/Calendar';
 
 function Dashboard() {
   return (
