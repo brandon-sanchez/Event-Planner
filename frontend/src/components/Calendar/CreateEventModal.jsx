@@ -1,48 +1,54 @@
-import { useState } from 'react';
-import { X } from 'lucide-react';
-import { getColorClasses } from '../../utils/Utils';
+import { useState } from "react";
+import { X } from "lucide-react";
+import { getColorClasses } from "../../utils/Utils";
 
 function CreateEventModal({ isOpen, onClose, onCreateEvent }) {
   const [newEvent, setNewEvent] = useState({
-    title: '',
-    description: '',
-    date: '',
-    startTime: '',
-    endTime: '',
-    location: '',
+    title: "",
+    description: "",
+    date: "",
+    startTime: "",
+    endTime: "",
+    location: "",
     isVirtual: false,
-    color: 'blue',
-    attendees: []
+    isGroupEvent: false,
+    color: "blue",
+    attendees: [],
   });
-  const [attendeeEmail, setAttendeeEmail] = useState('');
+  const [attendeeEmail, setAttendeeEmail] = useState("");
 
   if (!isOpen) return null;
 
   const addAttendee = () => {
-    if (attendeeEmail && attendeeEmail.includes('@')) {
-      const name = attendeeEmail.split('@')[0].replace(/\./g, ' ');
+    if (attendeeEmail && attendeeEmail.includes("@")) {
+      const name = attendeeEmail.split("@")[0].replace(/\./g, " ");
       setNewEvent({
         ...newEvent,
-        attendees: [...newEvent.attendees, { name, email: attendeeEmail }]
+        attendees: [...newEvent.attendees, { name, email: attendeeEmail }],
       });
-      setAttendeeEmail('');
+      setAttendeeEmail("");
     }
   };
 
   const handleCreateEvent = () => {
-    if (newEvent.title && newEvent.date && newEvent.startTime && newEvent.endTime) {
+    if (
+      newEvent.title &&
+      newEvent.date &&
+      newEvent.startTime &&
+      newEvent.endTime
+    ) {
       onCreateEvent(newEvent);
       //for resetting form
       setNewEvent({
-        title: '',
-        description: '',
-        date: '',
-        startTime: '',
-        endTime: '',
-        location: '',
+        title: "",
+        description: "",
+        date: "",
+        startTime: "",
+        endTime: "",
+        location: "",
         isVirtual: false,
-        color: 'blue',
-        attendees: []
+        color: "blue",
+        attendees: [],
       });
     }
   };
@@ -51,32 +57,39 @@ function CreateEventModal({ isOpen, onClose, onCreateEvent }) {
     <div className="fixed inset-0 backdrop-blur-md flex items-center justify-center z-50 animate-fadeIn">
       <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl animate-slideUp">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold text-white">Create Group Event</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-white"
-          >
+          <h2 className="text-xl font-semibold text-white">
+            Create Group Event
+          </h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-white">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">Event Title</label>
+            <label className="block text-sm font-medium text-gray-300 mb-1">
+              Event Title
+            </label>
             <input
               type="text"
               value={newEvent.title}
-              onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
+              onChange={(e) =>
+                setNewEvent({ ...newEvent, title: e.target.value })
+              }
               className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
               placeholder="Team meeting, Birthday party, etc."
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">Description</label>
+            <label className="block text-sm font-medium text-gray-300 mb-1">
+              Description
+            </label>
             <textarea
               value={newEvent.description}
-              onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
+              onChange={(e) =>
+                setNewEvent({ ...newEvent, description: e.target.value })
+              }
               className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white h-20 resize-none"
               placeholder="What's this event about?"
             />
@@ -87,38 +100,69 @@ function CreateEventModal({ isOpen, onClose, onCreateEvent }) {
               type="checkbox"
               id="virtual"
               checked={newEvent.isVirtual}
-              onChange={(e) => setNewEvent({ ...newEvent, isVirtual: e.target.checked })}
+              onChange={(e) =>
+                setNewEvent({ ...newEvent, isVirtual: e.target.checked })
+              }
               className="w-4 h-4"
             />
-            <label htmlFor="virtual" className="text-sm text-gray-300">Virtual Event</label>
+            <label htmlFor="virtual" className="text-sm text-gray-300">
+              Virtual Event
+            </label>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="groupEvent"
+              checked={newEvent.isGroupEvent}
+              onChange={(e) =>
+                setNewEvent({ ...newEvent, isGroupEvent: e.target.checked })
+              }
+              className="w-4 h-4"
+            />
+            <label htmlFor="groupEvent" className="text-sm text-gray-300">
+              Group Event (invite others)
+            </label>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">Date</label>
+            <label className="block text-sm font-medium text-gray-300 mb-1">
+              Date
+            </label>
             <input
               type="date"
               value={newEvent.date}
-              onChange={(e) => setNewEvent({ ...newEvent, date: e.target.value })}
+              onChange={(e) =>
+                setNewEvent({ ...newEvent, date: e.target.value })
+              }
               className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">Start Time</label>
+              <label className="block text-sm font-medium text-gray-300 mb-1">
+                Start Time
+              </label>
               <input
                 type="time"
                 value={newEvent.startTime}
-                onChange={(e) => setNewEvent({ ...newEvent, startTime: e.target.value })}
+                onChange={(e) =>
+                  setNewEvent({ ...newEvent, startTime: e.target.value })
+                }
                 className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">End Time</label>
+              <label className="block text-sm font-medium text-gray-300 mb-1">
+                End Time
+              </label>
               <input
                 type="time"
                 value={newEvent.endTime}
-                onChange={(e) => setNewEvent({ ...newEvent, endTime: e.target.value })}
+                onChange={(e) =>
+                  setNewEvent({ ...newEvent, endTime: e.target.value })
+                }
                 className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
               />
             </div>
@@ -126,57 +170,68 @@ function CreateEventModal({ isOpen, onClose, onCreateEvent }) {
 
           {!newEvent.isVirtual && (
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">Location</label>
+              <label className="block text-sm font-medium text-gray-300 mb-1">
+                Location
+              </label>
               <input
                 type="text"
                 value={newEvent.location}
-                onChange={(e) => setNewEvent({ ...newEvent, location: e.target.value })}
+                onChange={(e) =>
+                  setNewEvent({ ...newEvent, location: e.target.value })
+                }
                 className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
-                placeholder="1600 Amphitheatre Parkway, Mountain View, CA"
+                placeholder="Enter location..."
               />
             </div>
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">Event Color</label>
+            <label className="block text-sm font-medium text-gray-300 mb-1">
+              Event Color
+            </label>
             <div className="flex space-x-2">
-              {['blue', 'orange', 'purple', 'green', 'red'].map(color => (
+              {["blue", "orange", "purple", "green", "red"].map((color) => (
                 <button
                   key={color}
                   onClick={() => setNewEvent({ ...newEvent, color })}
-                  className={`w-8 h-8 rounded-full ${getColorClasses(color, 'bgDot')} ${newEvent.color === color ? 'ring-2 ring-white' : ''}`}
+                  className={`w-8 h-8 rounded-full ${getColorClasses(color, "bgDot")} ${newEvent.color === color ? "ring-2 ring-white" : ""}`}
                 />
               ))}
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">Invite Users</label>
-            <div className="flex space-x-2">
-              <input
-                type="email"
-                value={attendeeEmail}
-                onChange={(e) => setAttendeeEmail(e.target.value)}
-                className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
-                placeholder="Search by email..."
-              />
-              <button
-                onClick={addAttendee}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-              >
-                Add
-              </button>
-            </div>
-            {newEvent.attendees.length > 0 && (
-              <div className="mt-2 space-y-1">
-                {newEvent.attendees.map((attendee, idx) => (
-                  <div key={idx} className="text-sm text-gray-400">
-                    {attendee.email}
-                  </div>
-                ))}
+          {newEvent.isGroupEvent && (
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">
+                {" "}
+                Invite Users{" "}
+              </label>
+              <div className="flex space-x-2">
+                <input
+                  type="email"
+                  value={attendeeEmail}
+                  onChange={(e) => setAttendeeEmail(e.target.value)}
+                  className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                  placeholder="Search by email..."
+                />
+                <button
+                  onClick={addAttendee}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  Add
+                </button>
               </div>
-            )}
-          </div>
+              {newEvent.attendees.length > 0 && (
+                <div className="mt-2 space-y-1">
+                  {newEvent.attendees.map((attendee, idx) => (
+                    <div key={idx} className="text-sm text-gray-400">
+                      {attendee.email}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="flex justify-end space-x-3 pt-4">
             <button
@@ -189,7 +244,7 @@ function CreateEventModal({ isOpen, onClose, onCreateEvent }) {
               onClick={handleCreateEvent}
               className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
             >
-              Create Event & Send Invites
+              {newEvent.isGroupEvent ? "Create Event & Sent Invites" : "Create Event"}
             </button>
           </div>
         </div>

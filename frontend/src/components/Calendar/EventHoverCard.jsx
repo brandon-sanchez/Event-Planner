@@ -1,7 +1,7 @@
 import { Calendar as CalendarIcon, MapPin, Users, Clock, Video } from "lucide-react";
 import Avatar from "../Avatar";
 import GoogleMapEmbed from "../GoogleMapEmbed";
-import { getColorClasses } from "../../utils/Utils";
+import { getColorClasses, formatDate } from "../../utils/Utils";
 
 function EventHoverCard({
   event,
@@ -35,7 +35,7 @@ function EventHoverCard({
           <span className="font-medium">Date</span>
         </div>
         <div className="text-gray-100 text-sm ml-6">
-          {event.date}
+          {formatDate(event.date)}
         </div>
       </div>
 
@@ -82,27 +82,29 @@ function EventHoverCard({
         </div>
       )}
 
-      <div className="mb-3">
-        <div className="flex items-center text-gray-100 text-sm mb-2">
-          <Users className="w-4 h-4 mr-2" />
-          <span className="font-medium">
-            Attendees ({event.attendees.length})
-          </span>
-        </div>
-        <div className="space-y-2 ml-6">
-          {event.attendees.map((attendee, idx) => (
-            <div key={idx} className="flex items-center space-x-2">
-              <Avatar name={attendee.name} size="sm" />
-              <div className="text-sm">
-                <div className="text-white">{attendee.name}</div>
-                <div className="text-gray-200 text-xs">
-                  {attendee.email}
+      {event.attendees && event.attendees.length > 0 && (
+        <div className="mb-3">
+          <div className="flex items-center text-gray-100 text-sm mb-2">
+            <Users className="w-4 h-4 mr-2" />
+            <span className="font-medium">
+              Attendees ({event.attendees.length})
+            </span>
+          </div>
+          <div className="space-y-2 ml-6">
+            {event.attendees.map((attendee, idx) => (
+              <div key={idx} className="flex items-center space-x-2">
+                <Avatar name={attendee.name} size="sm" />
+                <div className="text-sm">
+                  <div className="text-white">{attendee.name}</div>
+                  <div className="text-gray-200 text-xs">
+                    {attendee.email}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

@@ -19,22 +19,24 @@ function EventCard({ event, onMouseEnter, onMouseLeave }) {
           {event.startTime} {event.title}
         </span>
       </div>
-      <div className="flex items-center -space-x-1.5">
-        {event.attendees.slice(0, 4).map((attendee, idx) => (
-          <div
-            key={idx}
-            className="w-5 h-5 rounded-full bg-blue-500 border-2 border-white flex items-center justify-center text-[9px] font-medium"
-            title={attendee.name}
-          >
-            {getInitials(attendee.name)}
-          </div>
-        ))}
-        {event.attendees.length > 4 && (
-          <div className="w-5 h-5 rounded-full bg-gray-600 border-2 border-white flex items-center justify-center text-[9px] font-medium">
-            +{event.attendees.length - 4}
-          </div>
-        )}
-      </div>
+      {event.attendees && event.attendees.length > 0 && (
+        <div className="flex items-center -space-x-1.5">
+          {event.attendees.slice(0, 4).map((attendee, idx) => (
+            <div
+              key={idx}
+              className="w-5 h-5 rounded-full bg-blue-500 border-2 border-white flex items-center justify-center text-[9px] font-medium"
+              title={attendee.name}
+            >
+              {getInitials(attendee.name)}
+            </div>
+          ))}
+          {event.attendees.length > 4 && (
+            <div className="w-5 h-5 rounded-full bg-gray-600 border-2 border-white flex items-center justify-center text-[9px] font-medium">
+              +{event.attendees.length - 4}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
