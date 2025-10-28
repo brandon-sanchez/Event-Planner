@@ -47,6 +47,7 @@ function CreateEventModal({ isOpen, onClose, onCreateEvent }) {
         endTime: "",
         location: "",
         isVirtual: false,
+        isGroupEvent: false,
         color: "blue",
         attendees: [],
       });

@@ -37,44 +37,6 @@ function Calendar() {
     loadEvents();
   }, []);
 
-  // const [events, setEvents] = useState([
-  //   {
-  //     id: 1,
-  //     title: "Team Meeting",
-  //     date: "2025-10-11",
-  //     startTime: "10:00 AM",
-  //     endTime: "11:00 AM",
-  //     location: "1600 Amphitheatre Parkway, Mountain View, CA",
-  //     isVirtual: false,
-  //     color: "blue",
-  //     attendees: [
-  //       { name: "Brandon Sanchez", email: "brandon@example.com" },
-  //       { name: "Kyle Arikata", email: "kyle@example.com" },
-  //     ],
-  //   },
-  //   {
-  //     id: 2,
-  //     title: "Project Deadline",
-  //     date: "2025-10-19",
-  //     startTime: "3:00 AM",
-  //     endTime: "3:30 AM",
-  //     isVirtual: true,
-  //     color: "orange",
-  //     attendees: [{ name: "Alex Johnson", email: "alex@example.com" }],
-  //   },
-  //   {
-  //     id: 3,
-  //     title: "Coffee Chat",
-  //     date: "2025-10-19",
-  //     startTime: "2:30 PM",
-  //     endTime: "3:30 PM",
-  //     location: "Starbucks, Main Street",
-  //     isVirtual: false,
-  //     color: "purple",
-  //     attendees: [{ name: "Emily Davis", email: "emily@example.com" }],
-  //   },
-  // ]);
-
   const handleEventHover = (event, e) => {
     if (hoverTimeoutRef.current) {
       clearTimeout(hoverTimeoutRef.current);
