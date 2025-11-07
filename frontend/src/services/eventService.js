@@ -1,5 +1,5 @@
 import { db, auth } from '../config/firebase';
-import { collection, addDoc, getDocs, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, getDocs, serverTimestamp, deleteDoc, doc } from 'firebase/firestore';
 
 // to reference current user's collection of events
 const getUserEventsCollection = (userId) => {
@@ -68,6 +68,24 @@ const getUserEvents = async() => {
     console.log('Error fetching user events:', error);
   }
 }
+// Delete event
+const deleteEvent = async (eventId) => {
+    // attempt to delete
+    try {
+        // check user id
+        const userId = checkAuth();
+        // create event doc reference
+        const eventDocRef = doc(db, 'users', userId, 'events', eventId);
+        await deleteDoc(eventDocRef);
 
-export { createEvent, getUserEvents };
+
+        return eventId;
+    } catch (error){
+    // catch error
+        console.log('Error deleting event:', error);
+    }
+
+}
+
+export { createEvent, getUserEvents, deleteEvent };
 

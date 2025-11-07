@@ -1,8 +1,8 @@
-import { Calendar as CalendarIcon } from "lucide-react";
+import { Calendar as CalendarIcon, Trash2 } from "lucide-react";
 import { getColorClasses, formatDate } from "../../utils/Utils";
 import { parseTime } from "./CalendarUtils";
 
-function UpcomingEventsList({ events }) {
+function UpcomingEventsList({ events, onDeleteEvent }) {
 
   const upcomingEvents = events
     .filter((event) => {
@@ -45,7 +45,7 @@ function UpcomingEventsList({ events }) {
           </div>
         ) : (
           upcomingEvents.map((event) => (
-            <div key={event.id} className="flex items-start space-x-3">
+            <div key={event.id} className="flex items-start space-x-3 group">
               <div
                 className={`w-2 h-2 rounded-full mt-2 ${getColorClasses(event.color, 'bgDot')}`}
               />
@@ -58,6 +58,18 @@ function UpcomingEventsList({ events }) {
                   {event.isVirtual ? "Virtual Meeting" : event.location}
                 </div>
               </div>
+
+              <button
+                onClick={() => onDeleteEvent(event.id)}
+                aria-label = {`Delete ${event.title}`}
+                title = "Delete event"
+                className = "mt-1 rounded-md p-1.5 text-red-400 opacity-0
+                transition-opacity hover:text-red-300 hover:bg-red-500/10
+                group-hover:opacity-100"
+              >
+                <Trash2 className = "h-4 w-4"/>
+              </button>
+              )}
             </div>
           ))
         )}

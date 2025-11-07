@@ -7,7 +7,7 @@ import CalendarHeader from "./CalendarHeader";
 import CalendarGrid from "./CalendarGrid";
 import UpcomingEventsList from "./UpcomingEventsList";
 import EventHoverCard from "./EventHoverCard";
-import { createEvent, getUserEvents } from "../../services/eventService";
+import { createEvent, getUserEvents, deleteEvent } from "../../services/eventService";
 
 function Calendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -36,6 +36,7 @@ function Calendar() {
 
     loadEvents();
   }, []);
+
 
   const handleEventHover = (event, e) => {
     if (hoverTimeoutRef.current) {
@@ -88,6 +89,30 @@ function Calendar() {
     
   };
 
+  // Delete function
+  const handleDeleteEvent = async (eventId) => {
+      // ask user for confirmation
+      const confirmed = window.confirm("Are you sure you want to delete this event?");
+        if (!confirmed) return;
+
+      // hold previous event in case of error
+      const prev = events;
+      setEvents(curr => curr.filter(e => e.id !== eventId));
+
+      // try to delete
+      try {
+          await deleteEvent(eventId);
+
+      } catch (err) {
+          // if error, send prompt and set back to prevvious
+          console.error('Failed to delete event:', err);
+          setEvents(prev);
+
+      }
+
+
+  };
+
 
   const navigateMonth = (direction) => {
     setCurrentDate((prev) => {
@@ -125,10 +150,15 @@ function Calendar() {
             events={events}
             onEventHover={handleEventHover}
             onEventLeave={handleEventLeave}
+            onDeleteEvent={handleDeleteEvent}
           />
         </div>
 
-        <UpcomingEventsList events={events} />
+        <UpcomingEventsList
+            events={events}
+            onDeleteEvent={handleDeleteEvent}
+
+        />
       </div>
 
       <EventHoverCard
