@@ -20,6 +20,9 @@ const createEvent = async (eventData) => {
     //get current logged in userID
     const userId = checkAuth();
 
+    //get current user info
+    const user = auth.currentUser;
+
     //reference to logged in user's collection of events
     const eventsCollectionRef = getUserEventsCollection(userId);
 
@@ -27,6 +30,10 @@ const createEvent = async (eventData) => {
     const newEvent = {
       //spread for event data passed in and added timestamps
       ...eventData,
+      creatorId: userId,
+      creatorName: user.displayName || user.email.split('@')[0],
+      isSharedEvent: false,
+      attendeeIds: [],
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     }
