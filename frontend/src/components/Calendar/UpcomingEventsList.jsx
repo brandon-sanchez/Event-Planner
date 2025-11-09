@@ -3,11 +3,10 @@ import { getColorClasses, formatDate } from "../../utils/Utils";
 import { parseTime } from "./CalendarUtils";
 
 function UpcomingEventsList({ events, onDeleteEvent }) {
-
   const upcomingEvents = events
     .filter((event) => {
       if (!event.endTime || !event.startTime || !event.date) {
-        console.warn('Event missing time data:', event);
+        console.warn("Event missing time data:", event);
         return false;
       }
 
@@ -47,7 +46,7 @@ function UpcomingEventsList({ events, onDeleteEvent }) {
           upcomingEvents.map((event) => (
             <div key={event.id} className="flex items-start space-x-3 group">
               <div
-                className={`w-2 h-2 rounded-full mt-2 ${getColorClasses(event.color, 'bgDot')}`}
+                className={`w-2 h-2 rounded-full mt-2 ${getColorClasses(event.color, "bgDot")}`}
               />
               <div className="flex-1">
                 <h4 className="font-medium">{event.title}</h4>
@@ -61,15 +60,12 @@ function UpcomingEventsList({ events, onDeleteEvent }) {
 
               <button
                 onClick={() => onDeleteEvent(event.id)}
-                aria-label = {`Delete ${event.title}`}
-                title = "Delete event"
-                className = "mt-1 rounded-md p-1.5 text-red-400 opacity-0
-                transition-opacity hover:text-red-300 hover:bg-red-500/10
-                group-hover:opacity-100"
+                aria-label={`Delete ${event.title}`}
+                title="Delete event"
+                className="mt-1 rounded-md p-1.5 text-red-400 opacity-0 transition-opacity hover:text-red-300 hover:bg-red-500/10 group-hover:opacity-100"
               >
-                <Trash2 className = "h-4 w-4"/>
+                <Trash2 className="h-4 w-4" />
               </button>
-              )
             </div>
           ))
         )}
@@ -77,6 +73,5 @@ function UpcomingEventsList({ events, onDeleteEvent }) {
     </div>
   );
 }
-
 
 export default UpcomingEventsList;

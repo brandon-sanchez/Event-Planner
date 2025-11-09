@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { X } from "lucide-react";
 import { getColorClasses } from "../../utils/Utils";
+import Autocomplete from "react-google-autocomplete";
 
 function CreateEventModal({ isOpen, onClose, onCreateEvent }) {
   const [newEvent, setNewEvent] = useState({
@@ -17,6 +18,16 @@ function CreateEventModal({ isOpen, onClose, onCreateEvent }) {
   });
   const [attendeeEmail, setAttendeeEmail] = useState("");
 
+
+  //to ensure required fields are filled in
+  const [error, setError] = useState({
+    title: false,
+    date: false,
+    startTime: false,
+    endTime: false,
+    location: false,
+  });
+
   if (!isOpen) return null;
 
   const addAttendee = () => {
@@ -31,14 +42,23 @@ function CreateEventModal({ isOpen, onClose, onCreateEvent }) {
   };
 
   const handleCreateEvent = () => {
-    if (
-      newEvent.title &&
-      newEvent.date &&
-      newEvent.startTime &&
-      newEvent.endTime
-    ) {
+    const newErrors = {
+      title: !newEvent.title,
+      date: !newEvent.date,
+      startTime: !newEvent.startTime,
+      endTime: !newEvent.endTime,
+      location: !newEvent.isVirtual && !newEvent.location, 
+    };
+    setError(newErrors);
+
+
+    //check if there are any errors
+    const hasErrors = Object.values(newErrors).some(error => error === true);
+
+    if(!hasErrors) {
       onCreateEvent(newEvent);
-      //for resetting form
+
+      //reseting form
       setNewEvent({
         title: "",
         description: "",
@@ -51,7 +71,28 @@ function CreateEventModal({ isOpen, onClose, onCreateEvent }) {
         color: "blue",
         attendees: [],
       });
+      
+
+      //clear errors
+      setError({
+        title: false,
+        date: false,
+        startTime: false,
+        endTime: false,
+        location: false,
+      });
     }
+  };
+
+  const handleClose = () => {
+    setError({
+      title: false,
+      date: false,
+      startTime: false,
+      endTime: false,
+      location: false,
+    });
+    onClose();
   };
 
   return (
@@ -61,11 +102,14 @@ function CreateEventModal({ isOpen, onClose, onCreateEvent }) {
           <h2 className="text-xl font-semibold text-white">
             Create Group Event
           </h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-white">
+
+          {/*x button*/}
+          <button onClick={handleClose} className="text-gray-400 hover:text-white">
             <X className="w-5 h-5" />
           </button>
         </div>
 
+        {/*event title field*/}
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-1">
@@ -74,14 +118,20 @@ function CreateEventModal({ isOpen, onClose, onCreateEvent }) {
             <input
               type="text"
               value={newEvent.title}
-              onChange={(e) =>
-                setNewEvent({ ...newEvent, title: e.target.value })
-              }
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
-              placeholder="Team meeting, Birthday party, etc."
+              onChange={(e) =>{
+                setNewEvent({ ...newEvent, title: e.target.value });
+
+                //clear the error when person start to type
+                if(error.title) {
+                  setError({ ...error, title: false });
+                }
+              }}
+              className={`w-full px-3 py-2 bg-gray-700 border rounded-lg text-white ${error.title ? "border-red-500" : "border-gray-600"}`}
+              placeholder="Enter Event Title"
             />
           </div>
-
+          
+          {/*description field*/}
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-1">
               Description
@@ -95,7 +145,8 @@ function CreateEventModal({ isOpen, onClose, onCreateEvent }) {
               placeholder="What's this event about?"
             />
           </div>
-
+          
+          {/*checkboxes*/}
           <div className="flex items-center space-x-2">
             <input
               type="checkbox"
@@ -125,7 +176,8 @@ function CreateEventModal({ isOpen, onClose, onCreateEvent }) {
               Group Event (invite others)
             </label>
           </div>
-
+          
+          {/*date field*/}
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-1">
               Date
@@ -133,13 +185,18 @@ function CreateEventModal({ isOpen, onClose, onCreateEvent }) {
             <input
               type="date"
               value={newEvent.date}
-              onChange={(e) =>
-                setNewEvent({ ...newEvent, date: e.target.value })
-              }
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+              onChange={(e) => {
+                setNewEvent({ ...newEvent, date: e.target.value });
+                //clear the error when person start to type
+                if(error.date) {
+                  setError({ ...error, date: false });
+                }
+              }}
+              className={`w-full px-3 py-2 bg-gray-700 border rounded-lg text-white cursor-pointer ${error.date ? "border-red-500" : "border-gray-600"}`}
             />
           </div>
-
+          
+          {/*time fields*/}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-1">
@@ -148,12 +205,17 @@ function CreateEventModal({ isOpen, onClose, onCreateEvent }) {
               <input
                 type="time"
                 value={newEvent.startTime}
-                onChange={(e) =>
-                  setNewEvent({ ...newEvent, startTime: e.target.value })
-                }
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                onChange={(e) => {
+                  setNewEvent({ ...newEvent, startTime: e.target.value });
+                  //clear the error when person start to type
+                  if(error.startTime) {
+                    setError({ ...error, startTime: false });
+                  }
+                }}
+                className={`w-full px-3 py-2 bg-gray-700 border rounded-lg text-white cursor-pointer ${error.startTime ? "border-red-500" : "border-gray-600"}`}
               />
             </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-1">
                 End Time
@@ -161,10 +223,14 @@ function CreateEventModal({ isOpen, onClose, onCreateEvent }) {
               <input
                 type="time"
                 value={newEvent.endTime}
-                onChange={(e) =>
-                  setNewEvent({ ...newEvent, endTime: e.target.value })
-                }
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                onChange={(e) => {
+                  setNewEvent({ ...newEvent, endTime: e.target.value });
+                  //clear the error when person start to type
+                  if(error.endTime) {
+                    setError({ ...error, endTime: false });
+                  }
+                }}
+                className={`w-full px-3 py-2 bg-gray-700 border rounded-lg text-white cursor-pointer ${error.endTime ? "border-red-500" : "border-gray-600"}`}
               />
             </div>
           </div>
@@ -174,18 +240,31 @@ function CreateEventModal({ isOpen, onClose, onCreateEvent }) {
               <label className="block text-sm font-medium text-gray-300 mb-1">
                 Location
               </label>
-              <input
-                type="text"
+              <Autocomplete
+                apiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}
+                onPlaceSelected={(place) => {
+                  setNewEvent({
+                    ...newEvent,
+                    location: place.formatted_address || ""});
+                  //clear the error when person start to type
+                  if(error.location) {
+                    setError({ ...error, location: false });
+                  }
+                }}
                 value={newEvent.location}
-                onChange={(e) =>
-                  setNewEvent({ ...newEvent, location: e.target.value })
-                }
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
-                placeholder="Enter location..."
+                onChange={(e) => {
+                  setNewEvent({ ...newEvent, location: e.target.value });
+                }}
+                options={{
+                  types: [],
+                }}
+                placeholder="Enter event location"
+                className={`w-full px-3 py-2 bg-gray-700 border rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 ${error.location ? "border-red-500" : "border-gray-600"}`}
               />
             </div>
           )}
 
+          {/*event color selector*/}
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-1">
               Event Color
@@ -234,9 +313,10 @@ function CreateEventModal({ isOpen, onClose, onCreateEvent }) {
             </div>
           )}
 
+          {/*cancel button*/}
           <div className="flex justify-end space-x-3 pt-4">
             <button
-              onClick={onClose}
+              onClick={handleClose}
               className="px-4 py-2 text-gray-300 hover:text-white"
             >
               Cancel
@@ -245,7 +325,9 @@ function CreateEventModal({ isOpen, onClose, onCreateEvent }) {
               onClick={handleCreateEvent}
               className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
             >
-              {newEvent.isGroupEvent ? "Create Event & Sent Invites" : "Create Event"}
+              {newEvent.isGroupEvent
+                ? "Create Event & Sent Invites"
+                : "Create Event"}
             </button>
           </div>
         </div>

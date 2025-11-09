@@ -58,32 +58,27 @@ function CalendarGrid({
                   </div>
                   <div className="space-y-1">
                     {dayEvents.map((event) => (
-                        <div key= {event.id} className = "relative group">
-                      <EventCard
-                        event={event}
-                        onMouseEnter={(e) => onEventHover(event, e)}
-                        onMouseLeave={onEventLeave}
-                      />
-                      {onDeleteEvent && (
+                      <div key={event.id} className="relative group">
+                        <EventCard
+                          event={event}
+                          onMouseEnter={(e) => onEventHover(event, e)}
+                          onMouseLeave={onEventLeave}
+                        />
+                        {onDeleteEvent && (
                           <button
-                            type = "button"
-                            title = "Delete event"
-                            aria-label = {`Delete ${event.title}`}
-                            className = "absolute right-1 top-1 hidden rounded-md p-1.5
-                            text-red-400 hover:text-red-300 hover:bg-red-500/10
-                            group-hover:block transition-all"
-                            onClick = {(e) => {
-                                e.stopPropagation();
-                                onDeleteEvent(event.id);
-                                }}
-                            >
-                            <Trash2 className = "h-4 w-4"/>
-                            </button>
-
-                          )}
+                            type="button"
+                            title="Delete event"
+                            aria-label={`Delete ${event.title}`}
+                            className="absolute right-1 top-1 hidden rounded-md p-1.5 text-red-400 hover:text-red-300 hover:bg-red-500/10 group-hover:block transition-all"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onDeleteEvent(event.id);
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        )}
                       </div>
-
-
                     ))}
                   </div>
                 </>
