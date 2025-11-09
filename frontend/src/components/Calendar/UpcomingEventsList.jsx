@@ -1,22 +1,15 @@
-import { Calendar as CalendarIcon } from "lucide-react";
-import { getColorClasses } from "../../utils/Utils";
+import { Calendar as CalendarIcon, Trash2 } from "lucide-react";
+import { getColorClasses, formatDate } from "../../utils/Utils";
+import { parseTime } from "./CalendarUtils";
 
-function UpcomingEventsList({ events }) {
-  const parseTime = (timeStr) => {
-    const [hours, minutes] = timeStr
-      .match(/(\d+):(\d+)\s*(AM|PM)/i)
-      .slice(1, 3);
-    const isPM = timeStr.toUpperCase().includes("PM");
-    let hour24 = parseInt(hours);
-
-    if (isPM && hour24 !== 12) hour24 += 12;
-    if (!isPM && hour24 === 12) hour24 = 0;
-
-    return { hour: hour24, minute: parseInt(minutes) };
-  };
-
+function UpcomingEventsList({ events, onDeleteEvent }) {
   const upcomingEvents = events
     .filter((event) => {
+      if (!event.endTime || !event.startTime || !event.date) {
+        console.warn("Event missing time data:", event);
+        return false;
+      }
+
       const endTime = parseTime(event.endTime);
       const eventEndDateTime = new Date(event.date + "T00:00:00");
       eventEndDateTime.setHours(endTime.hour, endTime.minute, 0, 0);
@@ -51,19 +44,28 @@ function UpcomingEventsList({ events }) {
           </div>
         ) : (
           upcomingEvents.map((event) => (
-            <div key={event.id} className="flex items-start space-x-3">
+            <div key={event.id} className="flex items-start space-x-3 group">
               <div
-                className={`w-2 h-2 rounded-full mt-2 ${getColorClasses(event.color, 'bgDot')}`}
+                className={`w-2 h-2 rounded-full mt-2 ${getColorClasses(event.color, "bgDot")}`}
               />
               <div className="flex-1">
                 <h4 className="font-medium">{event.title}</h4>
                 <div className="text-sm text-gray-400">
-                  {event.date} • {event.startTime} - {event.endTime}
+                  {formatDate(event.date)} • {event.startTime} - {event.endTime}
                 </div>
                 <div className="text-sm text-gray-400">
                   {event.isVirtual ? "Virtual Meeting" : event.location}
                 </div>
               </div>
+
+              <button
+                onClick={() => onDeleteEvent(event.id)}
+                aria-label={`Delete ${event.title}`}
+                title="Delete event"
+                className="mt-1 rounded-md p-1.5 text-red-400 opacity-0 transition-opacity hover:text-red-300 hover:bg-red-500/10 group-hover:opacity-100"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
             </div>
           ))
         )}
@@ -71,6 +73,5 @@ function UpcomingEventsList({ events }) {
     </div>
   );
 }
-
 
 export default UpcomingEventsList;

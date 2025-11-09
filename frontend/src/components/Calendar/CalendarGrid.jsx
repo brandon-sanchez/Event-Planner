@@ -1,11 +1,13 @@
 import { generateCalendarDays, getEventsForDay } from "./CalendarUtils";
 import EventCard from "./EventCard";
+import { Trash2 } from "lucide-react";
 
 function CalendarGrid({
   currentDate,
   events,
   onEventHover,
   onEventLeave,
+  onDeleteEvent,
 }) {
   const calendarDays = generateCalendarDays(currentDate);
   const weekDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -56,12 +58,27 @@ function CalendarGrid({
                   </div>
                   <div className="space-y-1">
                     {dayEvents.map((event) => (
-                      <EventCard
-                        key={event.id}
-                        event={event}
-                        onMouseEnter={(e) => onEventHover(event, e)}
-                        onMouseLeave={onEventLeave}
-                      />
+                      <div key={event.id} className="relative group">
+                        <EventCard
+                          event={event}
+                          onMouseEnter={(e) => onEventHover(event, e)}
+                          onMouseLeave={onEventLeave}
+                        />
+                        {onDeleteEvent && (
+                          <button
+                            type="button"
+                            title="Delete event"
+                            aria-label={`Delete ${event.title}`}
+                            className="absolute right-1 top-1 hidden rounded-md p-1.5 text-red-400 hover:text-red-300 hover:bg-red-500/10 group-hover:block transition-all"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onDeleteEvent(event.id);
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        )}
+                      </div>
                     ))}
                   </div>
                 </>

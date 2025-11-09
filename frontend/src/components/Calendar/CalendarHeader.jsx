@@ -5,8 +5,7 @@ function CalendarHeader({
   currentDate,
   onNavigateMonth,
   onGoToToday,
-  onCreateIndividualEvent,
-  onCreateGroupEvent,
+  onCreateEvent,
 }) {
   return (
     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
@@ -14,21 +13,11 @@ function CalendarHeader({
 
       <div className="flex flex-wrap items-center gap-2">
         <button
-          onClick={onCreateIndividualEvent}
+          onClick={onCreateEvent}
           className="flex items-center space-x-2 px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
         >
           <Plus className="w-4 h-4" />
           <span className="hidden sm:inline">Create Event</span>
-          <span className="sm:hidden">Event</span>
-        </button>
-
-        <button
-          onClick={onCreateGroupEvent}
-          className="flex items-center space-x-2 px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
-        >
-          <Plus className="w-4 h-4" />
-          <span className="hidden sm:inline">Create Group Event</span>
-          <span className="sm:hidden">Group</span>
         </button>
 
         <div className="flex items-center space-x-1">
