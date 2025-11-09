@@ -93,6 +93,16 @@ const deleteEvent = async (eventId) => {
     }
 
 }
+export const updateEvent = async (eventId, updates) => {
+      try {
+        const userId = checkAuth();
+        const ref = doc(db, 'users', userId, 'events', eventId);
+        await updateDoc(ref, { ...updates, updatedAt: serverTimestamp() });
+        return { id: eventId, ...updates };
+      } catch (error) {
+        console.log('Error updating event:', error);
+      }
+    };
 
 export { createEvent, getUserEvents, deleteEvent };
 

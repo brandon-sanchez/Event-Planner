@@ -8,6 +8,7 @@ function CalendarGrid({
   onEventHover,
   onEventLeave,
   onDeleteEvent,
+  onEditEvent,
 }) {
   const calendarDays = generateCalendarDays(currentDate);
   const weekDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];

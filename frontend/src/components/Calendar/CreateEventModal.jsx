@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { getColorClasses } from "../../utils/Utils";
 
-function CreateEventModal({ isOpen, onClose, onCreateEvent }) {
+function CreateEventModal({ isOpen, onClose, onCreateEvent, onUpdateEvent, editingEvent }) {
   const [newEvent, setNewEvent] = useState({
     title: "",
     description: "",
@@ -17,7 +17,57 @@ function CreateEventModal({ isOpen, onClose, onCreateEvent }) {
   });
   const [attendeeEmail, setAttendeeEmail] = useState("");
 
+  useEffect(() => {
+    if (!isOpen) return;
+    if (editingEvent) {
+      setNewEvent({
+        title: editingEvent.title || "",
+        description: editingEvent.description || "",
+        date:
+          editingEvent.date ||
+          (editingEvent.startISO
+            ? new Date(editingEvent.startISO).toISOString().slice(0, 10)
+            : ""),
+        startTime:
+          editingEvent.startTime ||
+          (editingEvent.startISO
+            ? new Date(editingEvent.startISO).toTimeString().slice(0, 5)
+            : ""),
+        endTime:
+          editingEvent.endTime ||
+          (editingEvent.endISO
+            ? new Date(editingEvent.endISO).toTimeString().slice(0, 5)
+            : ""),
+        location: editingEvent.location || "",
+        isVirtual: !!editingEvent.isVirtual,
+        isGroupEvent: !!editingEvent.isGroupEvent,
+        color: editingEvent.color || "blue",
+        attendees: Array.isArray(editingEvent.attendees)
+          ? editingEvent.attendees
+          : [],
+      });
+    } else {
+      // reset on fresh open
+      setNewEvent({
+        title: "",
+        description: "",
+        date: "",
+        startTime: "",
+        endTime: "",
+        location: "",
+        isVirtual: false,
+        isGroupEvent: false,
+        color: "blue",
+        attendees: [],
+      });
+    }
+  }, [isOpen, editingEvent]);
+
   if (!isOpen) return null;
+
+  const isEditMode = Boolean(editingEvent?.id);
+
+  const isValidEmail = (e) => /\S+@\S+\.\S+/.test(e);
 
   const addAttendee = () => {
     if (attendeeEmail && attendeeEmail.includes("@")) {
@@ -30,15 +80,31 @@ function CreateEventModal({ isOpen, onClose, onCreateEvent }) {
     }
   };
 
+  const removeAttendee = (email) => {
+    setNewEvent({
+      ...newEvent,
+      attendees: newEvent.attendees.filter((a) => a.email !== email),
+    });
+  };
+
   const handleCreateEvent = () => {
-    if (
-      newEvent.title &&
-      newEvent.date &&
-      newEvent.startTime &&
-      newEvent.endTime
-    ) {
+    if (!(newEvent.title && newEvent.date && newEvent.startTime && newEvent.endTime)) return;
+
+    // Basic time validation (same-day)
+    const start = new Date(`${newEvent.date}T${newEvent.startTime}:00`);
+    const end = new Date(`${newEvent.date}T${newEvent.endTime}:00`);
+    if (end <= start) {
+      alert("End time must be after start time.");
+      return;
+    }
+
+    if (isEditMode) {
+      // Update path
+      onUpdateEvent?.({ id: editingEvent.id, ...newEvent });
+    } else {
+      // Create path
       onCreateEvent(newEvent);
-      //for resetting form
+      // reset after create
       setNewEvent({
         title: "",
         description: "",
@@ -54,12 +120,12 @@ function CreateEventModal({ isOpen, onClose, onCreateEvent }) {
     }
   };
 
-  return (
+return (
     <div className="fixed inset-0 backdrop-blur-md flex items-center justify-center z-50 animate-fadeIn">
       <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl animate-slideUp">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold text-white">
-            Create Group Event
+            {isEditMode ? "Edit Event" : (newEvent.isGroupEvent ? "Create Group Event" : "Create Event")}
           </h2>
           <button onClick={onClose} className="text-gray-400 hover:text-white">
             <X className="w-5 h-5" />
@@ -196,6 +262,8 @@ function CreateEventModal({ isOpen, onClose, onCreateEvent }) {
                   key={color}
                   onClick={() => setNewEvent({ ...newEvent, color })}
                   className={`w-8 h-8 rounded-full ${getColorClasses(color, "bgDot")} ${newEvent.color === color ? "ring-2 ring-white" : ""}`}
+                  aria-label={`Select ${color}`}
+                  title={color}
                 />
               ))}
             </div>
@@ -212,6 +280,7 @@ function CreateEventModal({ isOpen, onClose, onCreateEvent }) {
                   type="email"
                   value={attendeeEmail}
                   onChange={(e) => setAttendeeEmail(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addAttendee(); } }}
                   className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
                   placeholder="Search by email..."
                 />
@@ -225,8 +294,16 @@ function CreateEventModal({ isOpen, onClose, onCreateEvent }) {
               {newEvent.attendees.length > 0 && (
                 <div className="mt-2 space-y-1">
                   {newEvent.attendees.map((attendee, idx) => (
-                    <div key={idx} className="text-sm text-gray-400">
-                      {attendee.email}
+                    <div key={attendee.email || idx} className="text-sm text-gray-300 flex items-center justify-between">
+                      <span>{attendee.email}</span>
+                      <button
+                        onClick={() => removeAttendee(attendee.email)}
+                        className="text-gray-400 hover:text-white"
+                        aria-label={`Remove ${attendee.email}`}
+                        title="Remove"
+                      >
+                        ×
+                      </button>
                     </div>
                   ))}
                 </div>
@@ -245,7 +322,11 @@ function CreateEventModal({ isOpen, onClose, onCreateEvent }) {
               onClick={handleCreateEvent}
               className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
             >
-              {newEvent.isGroupEvent ? "Create Event & Sent Invites" : "Create Event"}
+              {isEditMode
+                ? "Save Changes"
+                : newEvent.isGroupEvent
+                  ? "Create Event & Send Invites"
+                  : "Create Event"}
             </button>
           </div>
         </div>

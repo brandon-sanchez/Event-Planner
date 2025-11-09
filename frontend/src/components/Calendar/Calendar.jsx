@@ -7,7 +7,7 @@ import CalendarHeader from "./CalendarHeader";
 import CalendarGrid from "./CalendarGrid";
 import UpcomingEventsList from "./UpcomingEventsList";
 import EventHoverCard from "./EventHoverCard";
-import { createEvent, getUserEvents, deleteEvent } from "../../services/eventService";
+import { createEvent, getUserEvents, deleteEvent, updateEvent } from "../../services/eventService";
 
 function Calendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -19,6 +19,7 @@ function Calendar() {
   const [isHoverCardFading, setIsHoverCardFading] = useState(false);
   const hoverTimeoutRef = useRef(null);
 
+  const [editingEvent, setEditingEvent] = useState(null);
   const currentUser = getCurrentUser(auth);
 
   useEffect(() => {
@@ -35,6 +36,10 @@ function Calendar() {
     };
 
     loadEvents();
+
+    return () => {
+      if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+    };
   }, []);
 
 
@@ -68,18 +73,30 @@ function Calendar() {
     setIsHoverCardFading(false);
   };
 
+  // Edit: open modal prefilled
+  const handleEditEvent = (event) => {
+    setEditingEvent(event);
+    setShowCreateModal(true);
+  };
+
   const handleCreateEvent = async (newEvent)  => {
     try {
       const eventToAdd = {
         ...newEvent,
         startTime: convertTo12HourFormat(newEvent.startTime),
         endTime: convertTo12HourFormat(newEvent.endTime),
-        attendees: newEvent.isGroupEvent
-        ? [currentUser, ...newEvent.attendees] : []
-      };
+      attendees: newEvent.isGroupEvent
+        ? [
+            ...(currentUser?.email
+              ? [{ name: currentUser.displayName || 'You', email: currentUser.email }]
+              : []),
+            ...newEvent.attendees,
+          ]
+        : [],
+    };
 
       const createdEvent = await createEvent(eventToAdd);
-      setEvents([...events, createdEvent]);
+      setEvents((prevEvents) => [...prevEvents, createdEvent]);
       setShowCreateModal(false);
 
       console.log('Event created successfully:');
@@ -107,10 +124,7 @@ function Calendar() {
           // if error, send prompt and set back to prevvious
           console.error('Failed to delete event:', err);
           setEvents(prev);
-
       }
-
-
   };
 
 
@@ -134,48 +148,70 @@ function Calendar() {
       </div>
     );
   }
+  // Persist edits
+  const handleUpdateEvent = async (updated) => {
+    try {
+      // optimistic update
+      setEvents((prev) => prev.map(e => e.id === updated.id ? { ...e, ...updated } : e));
+      await updateEvent(updated.id, { ...updated });
+      setShowCreateModal(false);
+      setEditingEvent(null);
+    } catch (err) {
+      console.error("Failed to update event:", err);
+      // Optionally refetch or show a toast; for now, revert by reloading from server:
+      const fresh = await getUserEvents();
+      setEvents(fresh);
+    }
+  };
 
-  return (
-    <div>
-      <div className="flex flex-col lg:flex-row gap-6">
-        <div className="flex-1">
-          <CalendarHeader
-            currentDate={currentDate}
-            onNavigateMonth={navigateMonth}
-            onGoToToday={goToToday}
-            onCreateEvent={() => setShowCreateModal(true)}
-          />
-          <CalendarGrid
-            currentDate={currentDate}
-            events={events}
-            onEventHover={handleEventHover}
-            onEventLeave={handleEventLeave}
-            onDeleteEvent={handleDeleteEvent}
-          />
-        </div>
+return (
+  // anchor for absolute-positioned hover card
+  <div className="relative">
+    <div className="flex flex-col lg:flex-row gap-6">
+      <div className="flex-1">
+        <CalendarHeader
+          currentDate={currentDate}
+          onNavigateMonth={navigateMonth}
+          onGoToToday={goToToday}
+          onCreateEvent={() => { setEditingEvent(null); setShowCreateModal(true); }}
+        />
 
-        <UpcomingEventsList
-            events={events}
-            onDeleteEvent={handleDeleteEvent}
-
+        <CalendarGrid
+          currentDate={currentDate}
+          events={events}
+          onEventHover={handleEventHover}
+          onEventLeave={handleEventLeave}
+          onEditEvent={handleEditEvent}
         />
       </div>
 
-      <EventHoverCard
-        event={hoveredEvent}
-        position={hoverPosition}
-        isFading={isHoverCardFading}
-        onMouseEnter={handleHoverCardEnter}
-        onMouseLeave={handleEventLeave}
-      />
-
-      <CreateEventModal
-        isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
-        onCreateEvent={handleCreateEvent}
+      <UpcomingEventsList
+        events={events}
+        onEditEvent={handleEditEvent}
       />
     </div>
-  );
+
+    <EventHoverCard
+      event={hoveredEvent}
+      position={hoverPosition}
+      isFading={isHoverCardFading}
+      onMouseEnter={handleHoverCardEnter}
+      onMouseLeave={handleEventLeave}
+      onEditEvent={handleEditEvent}
+      onDeleteEvent={handleDeleteEvent}
+      onUpdateEvent={handleUpdateEvent}
+    />
+
+    <CreateEventModal
+      isOpen={showCreateModal}
+      onClose={() => { setShowCreateModal(false); setEditingEvent(null); }}
+      onCreateEvent={handleCreateEvent}
+      onUpdateEvent={handleUpdateEvent}
+      editingEvent={editingEvent}
+    />
+  </div>
+);
+
 }
 
 export default Calendar;
