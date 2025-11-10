@@ -70,5 +70,20 @@ const parseTime = (timeStr) => {
   return { hour: hour24, minute: parseInt(minutes) };
 };
 
-export {getEventsForDay, generateCalendarDays, formatMonth, convertTo12HourFormat, parseTime}
-export { getInitials } from "../../utils/Utils";
+const convertTo24hourFormat = (time12h) => {
+  const [time, period] = time12h.split(" ");
+
+  let [hours, minutes] = time.split(':');
+
+  if(hours === '12') {
+    hours = '00';
+  }
+
+  if(period === 'PM') {
+    hours = parseInt(hours, 10) + 12;
+  }
+
+  return `${hours.toString().padStart(2, '0')}:${minutes}`;
+};
+
+export {getEventsForDay, generateCalendarDays, formatMonth, convertTo12HourFormat, parseTime, convertTo24hourFormat};

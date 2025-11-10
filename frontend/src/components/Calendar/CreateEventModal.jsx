@@ -1,9 +1,12 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { getColorClasses } from "../../utils/Utils";
 import Autocomplete from "react-google-autocomplete";
+import { convertTo24hourFormat } from "./CalendarUtils";
 
-function CreateEventModal({ isOpen, onClose, onCreateEvent }) {
+function CreateEventModal({ isOpen, onClose, onCreateEvent, editEvent = null, onUpdateEvent }) {
+  const [attendeeEmail, setAttendeeEmail] = useState("");
+  
   const [newEvent, setNewEvent] = useState({
     title: "",
     description: "",
@@ -16,8 +19,6 @@ function CreateEventModal({ isOpen, onClose, onCreateEvent }) {
     color: "blue",
     attendees: [],
   });
-  const [attendeeEmail, setAttendeeEmail] = useState("");
-
 
   //to ensure required fields are filled in
   const [error, setError] = useState({
@@ -27,6 +28,43 @@ function CreateEventModal({ isOpen, onClose, onCreateEvent }) {
     endTime: false,
     location: false,
   });
+
+  const isEditingEvent = editEvent !== null;
+
+  useEffect(() => {
+
+    if (editEvent) {
+      const convertedStartTime = convertTo24hourFormat(editEvent.startTime);
+      const convertedEndTime = convertTo24hourFormat(editEvent.endTime);
+
+      setNewEvent({
+        title: editEvent.title || "",
+        description: editEvent.description || "",
+        date: editEvent.date || "",
+        startTime: convertedStartTime || "",
+        endTime: convertedEndTime || "",
+        location: editEvent.location || "",
+        isVirtual: editEvent.isVirtual || false,
+        isGroupEvent: editEvent.isGroupEvent || false,
+        color: editEvent.color || "blue",
+        attendees: editEvent.attendees || [],
+      });
+
+    } else {
+      setNewEvent({
+        title: "",
+        description: "",
+        date: "",
+        startTime: "",
+        endTime: "",
+        location: "",
+        isVirtual: false,
+        isGroupEvent: false,
+        color: "blue",
+        attendees: [],
+      });
+    }
+  }, [editEvent]);
 
   if (!isOpen) return null;
 
@@ -41,7 +79,7 @@ function CreateEventModal({ isOpen, onClose, onCreateEvent }) {
     }
   };
 
-  const handleCreateEvent = () => {
+  const handleSavingEvent = () => {
     const newErrors = {
       title: !newEvent.title,
       date: !newEvent.date,
@@ -56,7 +94,11 @@ function CreateEventModal({ isOpen, onClose, onCreateEvent }) {
     const hasErrors = Object.values(newErrors).some(error => error === true);
 
     if(!hasErrors) {
-      onCreateEvent(newEvent);
+      if (isEditingEvent) {
+        onUpdateEvent(editEvent.id, newEvent);
+      } else {
+        onCreateEvent(newEvent);
+      }
 
       //reseting form
       setNewEvent({
@@ -100,7 +142,7 @@ function CreateEventModal({ isOpen, onClose, onCreateEvent }) {
       <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl animate-slideUp">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold text-white">
-            Create Group Event
+            {isEditingEvent ? "Edit Event" : "Create New Event"}
           </h2>
 
           {/*x button*/}
@@ -322,12 +364,10 @@ function CreateEventModal({ isOpen, onClose, onCreateEvent }) {
               Cancel
             </button>
             <button
-              onClick={handleCreateEvent}
+              onClick={handleSavingEvent}
               className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
             >
-              {newEvent.isGroupEvent
-                ? "Create Event & Sent Invites"
-                : "Create Event"}
+              {isEditingEvent ? "Update Event" : "Create Event"}
             </button>
           </div>
         </div>

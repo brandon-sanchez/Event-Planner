@@ -1,5 +1,5 @@
 import { db, auth } from '../config/firebase';
-import { collection, addDoc, getDocs, serverTimestamp, deleteDoc, doc } from 'firebase/firestore';
+import { collection, addDoc, getDocs, serverTimestamp, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 
 // to reference current user's collection of events
 const getUserEventsCollection = (userId) => {
@@ -87,5 +87,21 @@ const deleteEvent = async (eventId) => {
 
 }
 
-export { createEvent, getUserEvents, deleteEvent };
+const updateEvent = async (eventId, eventData) => {
+  try {
+    const userId = checkAuth();
+    const eventDocRef = doc(db, 'users', userId, 'events', eventId);
+
+    await updateDoc(eventDocRef, {
+      ...eventData,
+      updatedAt: serverTimestamp()
+    });
+
+    return { id: eventId, ...eventData };
+  } catch (error) {
+    console.log('Error updating the event:', error);
+  }
+};
+
+export { createEvent, getUserEvents, deleteEvent, updateEvent };
 

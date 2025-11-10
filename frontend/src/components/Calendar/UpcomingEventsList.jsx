@@ -1,8 +1,8 @@
-import { Calendar as CalendarIcon, Trash2 } from "lucide-react";
+import { Calendar as CalendarIcon, Trash2, Pencil } from "lucide-react";
 import { getColorClasses, formatDate } from "../../utils/Utils";
 import { parseTime } from "./CalendarUtils";
 
-function UpcomingEventsList({ events, onDeleteEvent }) {
+function UpcomingEventsList({ events, onDeleteEvent, onEditEvent }) {
   const upcomingEvents = events
     .filter((event) => {
       if (!event.endTime || !event.startTime || !event.date) {
@@ -58,14 +58,25 @@ function UpcomingEventsList({ events, onDeleteEvent }) {
                 </div>
               </div>
 
-              <button
-                onClick={() => onDeleteEvent(event.id)}
-                aria-label={`Delete ${event.title}`}
-                title="Delete event"
-                className="mt-1 rounded-md p-1.5 text-red-400 opacity-0 transition-opacity hover:text-red-300 hover:bg-red-500/10 group-hover:opacity-100"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => onEditEvent(event)}
+                    aria-label={`Edit ${event.title}`}
+                    title="Edit event"
+                    className="mt-1 rounded-md p-1.5 text-blue-400 opacity-0 transition-opacity hover:text-blue-300 hover:bg-blue-500/10 group-hover:opacity-100"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </button>
+
+                  <button
+                    onClick={() => onDeleteEvent(event.id)}
+                    aria-label={`Delete ${event.title}`}
+                    title="Delete event"
+                    className="mt-1 rounded-md p-1.5 text-red-400 opacity-0 transition-opacity hover:text-red-300 hover:bg-red-500/10 group-hover:opacity-100"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
             </div>
           ))
         )}

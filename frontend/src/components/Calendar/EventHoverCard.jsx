@@ -1,4 +1,4 @@
-import { Calendar as CalendarIcon, MapPin, Users, Clock, Video } from "lucide-react";
+import { Calendar as CalendarIcon, MapPin, Users, Clock, Video, Trash2, Pencil } from "lucide-react";
 import Avatar from "../Avatar";
 import GoogleMapEmbed from "../GoogleMapEmbed";
 import { getColorClasses, formatDate } from "../../utils/Utils";
@@ -9,6 +9,8 @@ function EventHoverCard({
   isFading,
   onMouseEnter,
   onMouseLeave,
+  onEditEvent,
+  onDeleteEvent,
 }) {
 
   if (!event) return null;
@@ -25,9 +27,30 @@ function EventHoverCard({
         backgroundColor: getColorClasses(event.color, 'bgHex'),
       }}
     >
-      <h3 className="text-white font-semibold text-lg mb-4">
-        {event.title}
-      </h3>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-white font-semibold text-lg mb-4">
+          {event.title}
+        </h3>
+
+        <div className="flex gap-2 mb-3">
+            <button
+              onClick={() => onEditEvent(event)}
+              className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm bg-white/10 hover:bg-white/20 text-white"
+              title="Edit event"
+            >
+              <Pencil className="w-4 h-4" />
+              Edit
+            </button>
+            <button
+              onClick={() => onDeleteEvent(event.id)}
+              className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm bg-red-500/80 hover:bg-red-500 text-white"
+              title="Delete event"
+            >
+              <Trash2 className="w-4 h-4" />
+              Delete
+            </button>
+          </div>
+      </div>
 
       <div className="mb-3">
         <div className="flex items-center text-gray-100 text-sm mb-1">

@@ -7,7 +7,7 @@ import CalendarHeader from "./CalendarHeader";
 import CalendarGrid from "./CalendarGrid";
 import UpcomingEventsList from "./UpcomingEventsList";
 import EventHoverCard from "./EventHoverCard";
-import { createEvent, getUserEvents, deleteEvent } from "../../services/eventService";
+import { createEvent, getUserEvents, deleteEvent, updateEvent } from "../../services/eventService";
 
 function Calendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -17,6 +17,7 @@ function Calendar() {
   const [hoverPosition, setHoverPosition] = useState({ x: 0, y: 0 });
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [isHoverCardFading, setIsHoverCardFading] = useState(false);
+  const [editingEvent, setEditingEvent] = useState(null);
   const hoverTimeoutRef = useRef(null);
 
   const currentUser = getCurrentUser(auth);
@@ -113,6 +114,33 @@ function Calendar() {
 
   };
 
+  const handleEditEvent = (event) => {
+    setEditingEvent(event);
+    setShowCreateModal(true);
+  };
+
+  const handleUpdateEvent = async (eventId, updatedEventData) => {
+    try {
+      const eventToUpdate = {
+        ...updatedEventData,
+        startTime: convertTo12HourFormat(updatedEventData.startTime),
+        endTime: convertTo12HourFormat(updatedEventData.endTime),
+        attendees: updatedEventData.isGroupEvent ? updatedEventData.attendees : []
+      };
+
+      await updateEvent(eventId, eventToUpdate);
+
+      setEvents((events.map(event =>
+        event.id === eventId ? { id: eventId, ...eventToUpdate } : event
+      )));
+
+      setShowCreateModal(false);
+      setEditingEvent(null);
+    } catch (error) {
+      console.log('Error updating event:', error);
+    }
+  };
+
 
   const navigateMonth = (direction) => {
     setCurrentDate((prev) => {
@@ -157,7 +185,7 @@ function Calendar() {
         <UpcomingEventsList
             events={events}
             onDeleteEvent={handleDeleteEvent}
-
+            onEditEvent={handleEditEvent}
         />
       </div>
 
@@ -167,12 +195,19 @@ function Calendar() {
         isFading={isHoverCardFading}
         onMouseEnter={handleHoverCardEnter}
         onMouseLeave={handleEventLeave}
+        onDeleteEvent={handleDeleteEvent}
+        onEditEvent={handleEditEvent}
       />
 
       <CreateEventModal
         isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
+        onClose={() => {
+          setShowCreateModal(false);
+          setEditingEvent(null);
+        }}
         onCreateEvent={handleCreateEvent}
+        editEvent={editingEvent}
+        onUpdateEvent={handleUpdateEvent}
       />
     </div>
   );

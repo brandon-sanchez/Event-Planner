@@ -1,5 +1,5 @@
 import { MapPin, Video } from "lucide-react";
-import { getInitials } from "./CalendarUtils";
+import { getInitials } from "../../utils/Utils";
 import { getColorClasses } from "../../utils/Utils";
 
 function EventCard({ event, onMouseEnter, onMouseLeave }) {
