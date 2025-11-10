@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
-import { Calendar as CalendarIcon, MapPin, Users, Clock, Video, Pencil, Trash2, Check, X } from "lucide-react";
+import { Calendar as CalendarIcon, MapPin, Users, Clock, Video, Pencil, Trash2 } from "lucide-react";
 import Avatar from "../Avatar";
 import GoogleMapEmbed from "../GoogleMapEmbed";
 import { getColorClasses, formatDate } from "../../utils/Utils";
+import { useMemo } from "react";
 
 function EventHoverCard({
   event,
@@ -10,72 +10,49 @@ function EventHoverCard({
   isFading,
   onMouseEnter,
   onMouseLeave,
-  onEditEvent,
-  onDeleteEvent,
-  onUpdateEvent,
+  onEditEvent,     // <-- parent passes handleEditEvent
+  onDeleteEvent,   // <-- parent passes handleDeleteEvent
 }) {
-  if (!event) return null;
+
 
   const top = Number.isFinite(position?.y) ? position.y : 0;
   const left = Number.isFinite(position?.x) ? position.x : 0;
 
-  // derive values safely
+  // derive values safely (display only)
   const dateYMD =
     event?.date ||
     (event?.startISO ? new Date(event.startISO).toISOString().slice(0, 10) : "");
 
-  const startDisp = event?.startISO
-    ? new Date(event.startISO).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
-    : (event?.startTime || "");
+  const startDisp = useMemo(() => (
+    event?.startISO
+      ? new Date(event.startISO).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
+      : (event?.startTime || "")
+  ), [event?.startISO, event?.startTime]);
 
-  const endDisp = event?.endISO
-    ? new Date(event.endISO).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
-    : (event?.endTime || "");
+  const endDisp = useMemo(() => (
+    event?.endISO
+      ? new Date(event.endISO).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
+      : (event?.endTime || "")
+  ), [event?.endISO, event?.endTime]);
+
+    if (!event) return null;
 
   // prevent invalid color causing layout weirdness
-  const bgHex = getColorClasses(event?.color, "bgHex") || "#1f2937"; // fallback gray-800
+  const bgHex = getColorClasses(event?.color, "bgHex") || "#1f2937"; // gray-800 fallback
 
-  // inline edit state (kept, but you can remove if not needed)
-  const [isEditing, setIsEditing] = useState(false);
-  const [form, setForm] = useState({
-    title: event?.title || "",
-    description: event?.description || "",
-    date: dateYMD || "",
-    startTime: event?.startTime || (event?.startISO ? new Date(event.startISO).toTimeString().slice(0,5) : ""),
-    endTime: event?.endTime   || (event?.endISO   ? new Date(event.endISO).toTimeString().slice(0,5)   : ""),
-    location: event?.location || "",
-    isVirtual: !!event?.isVirtual,
-    color: event?.color || "blue",
-  });
+  // close hover card unless user is still hovering it
+  const safeLeave = () => onMouseLeave?.();
 
-  useEffect(() => {
-    setIsEditing(false);
-    const ymd = event?.date || (event?.startISO ? new Date(event.startISO).toISOString().slice(0,10) : "");
-    setForm({
-      title: event?.title || "",
-      description: event?.description || "",
-      date: ymd || "",
-      startTime: event?.startTime || (event?.startISO ? new Date(event.startISO).toTimeString().slice(0,5) : ""),
-      endTime:   event?.endTime   || (event?.endISO   ? new Date(event.endISO).toTimeString().slice(0,5)   : ""),
-      location: event?.location || "",
-      isVirtual: !!event?.isVirtual,
-      color: event?.color || "blue",
-    });
-  }, [event]);
-
-  const onChange = (k) => (e) => setForm((s) => ({ ...s, [k]: e.target.type === "checkbox" ? e.target.checked : e.target.value }));
-
-  const handleSave = () => {
-    if (!(form.title && form.date && form.startTime && form.endTime)) return;
-    const start = new Date(`${form.date}T${form.startTime}:00`);
-    const end   = new Date(`${form.date}T${form.endTime}:00`);
-    if (end <= start) { alert("End time must be after start time."); return; }
-    onUpdateEvent?.({ id: event.id, ...event, ...form });
-    setIsEditing(false);
+  const handleEditClick = (e) => {
+    e.stopPropagation();
+    onEditEvent?.(event);     // open CreateEventModal prefilled
+    onMouseLeave?.();         // close hover popover after launching modal
   };
 
-  // avoid closing while editing (optional)
-  const safeLeave = () => { if (!isEditing) onMouseLeave?.(); };
+  const handleDeleteClick = (e) => {
+    e.stopPropagation();
+    onDeleteEvent?.(event.id);
+  };
 
   return (
     <div
@@ -87,54 +64,25 @@ function EventHoverCard({
     >
       {/* Header */}
       <div className="flex items-start justify-between mb-4">
-        {isEditing ? (
-          <input
-            type="text"
-            value={form.title}
-            onChange={onChange("title")}
-            className="w-full mr-2 px-2 py-1 rounded bg-white/10 text-white outline-none"
-            placeholder="Event title"
-          />
-        ) : (
-          <h3 className="text-white font-semibold text-lg">{event?.title || "—"}</h3>
-        )}
+        <h3 className="text-white font-semibold text-lg">{event?.title || "—"}</h3>
 
         <div className="flex items-center gap-1">
-          {!isEditing ? (
-            <>
-              <button
-                onClick={() => setIsEditing(true)}
-                className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm bg-white/10 hover:bg-white/20 text-white"
-                title="Edit"
-              >
-                <Pencil className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => onDeleteEvent?.(event.id)}
-                className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm bg-red-500/80 hover:bg-red-500 text-white"
-                title="Delete"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            </>
-          ) : (
-            <>
-              <button
-                onClick={handleSave}
-                className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm bg-green-500/90 hover:bg-green-500 text-white"
-                title="Save"
-              >
-                <Check className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => setIsEditing(false)}
-                className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm bg-white/10 hover:bg-white/20 text-white"
-                title="Cancel"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </>
-          )}
+          <button
+            onClick={handleEditClick}
+            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm bg-white/10 hover:bg-white/20 text-white"
+            title="Edit"
+            type="button"
+          >
+            <Pencil className="w-4 h-4" />
+          </button>
+          <button
+            onClick={handleDeleteClick}
+            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm bg-red-500/80 hover:bg-red-500 text-white"
+            title="Delete"
+            type="button"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
         </div>
       </div>
 
@@ -145,14 +93,7 @@ function EventHoverCard({
           <span className="font-medium">Date</span>
         </div>
         <div className="text-gray-100 text-sm ml-6">
-          {!isEditing ? (dateYMD ? formatDate(dateYMD) : "—") : (
-            <input
-              type="date"
-              value={form.date}
-              onChange={onChange("date")}
-              className="px-2 py-1 rounded bg-white/10 text-white outline-none"
-            />
-          )}
+          {dateYMD ? formatDate(dateYMD) : "—"}
         </div>
       </div>
 
@@ -162,35 +103,15 @@ function EventHoverCard({
           <Clock className="w-4 h-4 mr-2" />
           <span className="font-medium">Time</span>
         </div>
-        <div className="text-gray-100 text-sm ml-6 flex items-center gap-2">
-          {!isEditing ? (
-            <>
-              {startDisp || "—"}{endDisp ? ` - ${endDisp}` : ""}
-            </>
-          ) : (
-            <>
-              <input
-                type="time"
-                value={form.startTime}
-                onChange={onChange("startTime")}
-                className="px-2 py-1 rounded bg-white/10 text-white outline-none"
-              />
-              <span>–</span>
-              <input
-                type="time"
-                value={form.endTime}
-                onChange={onChange("endTime")}
-                className="px-2 py-1 rounded bg-white/10 text-white outline-none"
-              />
-            </>
-          )}
+        <div className="text-gray-100 text-sm ml-6">
+          {startDisp || "—"}{endDisp ? ` - ${endDisp}` : ""}
         </div>
       </div>
 
       {/* Location / Virtual */}
       <div className="mb-3">
         <div className="flex items-center text-gray-100 text-sm mb-1">
-          {(isEditing ? form.isVirtual : event?.isVirtual) ? (
+          {event?.isVirtual ? (
             <>
               <Video className="w-4 h-4 mr-2" />
               <span className="font-medium">Virtual Event</span>
@@ -203,52 +124,19 @@ function EventHoverCard({
           )}
         </div>
 
-        {!isEditing ? (
+        {!event?.isVirtual && event?.location && (
           <>
-            {!event?.isVirtual && event?.location && (
-              <>
-                <div className="text-gray-100 text-sm ml-6 mb-3">{event.location}</div>
-                <GoogleMapEmbed address={event.location} className="h-full w-full" />
-              </>
-            )}
+            <div className="text-gray-100 text-sm ml-6 mb-3">{event.location}</div>
+            <GoogleMapEmbed address={event.location} className="h-full w-full" />
           </>
-        ) : (
-          <div className="ml-6 space-y-2">
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={form.isVirtual}
-                onChange={onChange("isVirtual")}
-              />
-              Virtual event
-            </label>
-            {!form.isVirtual && (
-              <input
-                type="text"
-                value={form.location}
-                onChange={onChange("location")}
-                placeholder="Enter location..."
-                className="w-full px-2 py-1 rounded bg-white/10 text-white outline-none"
-              />
-            )}
-          </div>
         )}
       </div>
 
       {/* Description */}
-      {(!isEditing && event?.description) || isEditing ? (
+      {event?.description ? (
         <div className="mb-3">
           <div className="text-gray-100 text-sm font-medium mb-1">Description</div>
-          {!isEditing ? (
-            <div className="text-gray-100 text-sm ml-6">{event?.description || "—"}</div>
-          ) : (
-            <textarea
-              value={form.description}
-              onChange={onChange("description")}
-              className="w-full px-2 py-1 rounded bg-white/10 text-white outline-none ml-6 h-20 resize-none"
-              placeholder="What's this event about?"
-            />
-          )}
+          <div className="text-gray-100 text-sm ml-6">{event.description}</div>
         </div>
       ) : null}
 
