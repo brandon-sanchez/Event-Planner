@@ -1,6 +1,6 @@
 // Shared utility functions used across the app
 
-export const getInitials = (name) => {
+const getInitials = (name) => {
   if (!name) return "U";
   return name
     .split(" ")
@@ -10,7 +10,7 @@ export const getInitials = (name) => {
     .slice(0, 2);
 };
 
-export const getCurrentUser = (auth) => {
+const getCurrentUser = (auth) => {
   return {
     name:
       auth.currentUser?.displayName ||
@@ -20,7 +20,7 @@ export const getCurrentUser = (auth) => {
   };
 };
 
-export const getColorClasses = (color, type = "bg") => {
+const getColorClasses = (color, type = "bg") => {
   const colorMap = {
     bg: {
       blue: "bg-blue-600",
@@ -49,7 +49,9 @@ export const getColorClasses = (color, type = "bg") => {
 };
 
 //convert date from "YYYY-MM-DD" to "MM/DD/YYYY"
-export const formatDate = (dateString) => {
+const formatDate = (dateString) => {
   const [year, month, day] = dateString.split('-');
   return `${month}/${day}/${year}`;
 };
+
+export { getInitials, getCurrentUser, getColorClasses, formatDate };
