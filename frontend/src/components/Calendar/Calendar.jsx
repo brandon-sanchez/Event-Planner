@@ -8,6 +8,8 @@ import CalendarGrid from "./CalendarGrid";
 import UpcomingEventsList from "./UpcomingEventsList";
 import EventHoverCard from "./EventHoverCard";
 import { createEvent, getUserEvents, deleteEvent, updateEvent } from "../../services/eventService";
+import CreatePollModal from "./CreatePollModal";
+import PollsList from "./PollsList";
 
 function Calendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -19,8 +21,10 @@ function Calendar() {
   const [isHoverCardFading, setIsHoverCardFading] = useState(false);
   const [editingEvent, setEditingEvent] = useState(null);
   const hoverTimeoutRef = useRef(null);
+  const [pollRefresh, setPollRefresh] = useState(0);
 
   const currentUser = getCurrentUser(auth);
+  const [pollForEvent, setPollForEvent] = useState(null);
 
   useEffect(() => {
     const loadEvents = async () => {
@@ -141,6 +145,9 @@ function Calendar() {
     }
   };
 
+  const openCreatePoll = (event) => setPollForEvent(event);
+  const closeCreatePoll = () => setPollForEvent(null);
+
 
   const navigateMonth = (direction) => {
     setCurrentDate((prev) => {
@@ -187,6 +194,7 @@ function Calendar() {
             onDeleteEvent={handleDeleteEvent}
             onEditEvent={handleEditEvent}
         />
+         <PollsList events={events} refresh={pollRefresh} />
       </div>
 
       <EventHoverCard
@@ -197,6 +205,7 @@ function Calendar() {
         onMouseLeave={handleEventLeave}
         onDeleteEvent={handleDeleteEvent}
         onEditEvent={handleEditEvent}
+        onCreatePoll={openCreatePoll}
       />
 
       <CreateEventModal
@@ -208,6 +217,16 @@ function Calendar() {
         onCreateEvent={handleCreateEvent}
         editEvent={editingEvent}
         onUpdateEvent={handleUpdateEvent}
+      />
+      <CreatePollModal
+        isOpen={!!pollForEvent}
+        onClose={closeCreatePoll}
+        eventId={pollForEvent?.id}
+        event={pollForEvent}
+        onCreated={() => {
+            console.log("[Calendar] incrementing pollRefresh");
+            setPollRefresh((n) => n + 1);
+         }}
       />
     </div>
   );

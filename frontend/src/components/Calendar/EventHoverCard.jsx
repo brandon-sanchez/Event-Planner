@@ -11,6 +11,7 @@ function EventHoverCard({
   onMouseLeave,
   onEditEvent,
   onDeleteEvent,
+  onCreatePoll,
 }) {
 
   if (!event) return null;
@@ -40,6 +41,13 @@ function EventHoverCard({
             >
               <Pencil className="w-4 h-4" />
               Edit
+            </button>
+            <button
+              onClick={() => onCreatePoll && onCreatePoll(event)}
+              className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm bg-blue-600/90 hover:bg-blue-600 text-white"
+              title="Create poll"
+            >
+               Create Poll
             </button>
             <button
               onClick={() => onDeleteEvent(event.id)}
