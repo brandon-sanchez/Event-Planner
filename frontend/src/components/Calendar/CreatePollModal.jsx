@@ -3,14 +3,20 @@ import { X, Lock } from "lucide-react";
 import { createPoll } from "../../services/pollService";
 import { convertTo24hourFormat } from "./CalendarUtils";
 
+/**
+    Modal component for creating a poll
+ */
 function CreatePollModal({ isOpen, onClose, eventId, event, onCreated }) {
-  // Hooks MUST be called unconditionally (always run)
+  // State to hold list of date/time options
   const [options, setOptions] = useState([
     { id: crypto.randomUUID(), date: "", start: "", end: "" },
   ]);
+   // Whether the form is currently submitting
   const [submitting, setSubmitting] = useState(false);
+  // Validation state for missing or incomplete options
   const [error, setError] = useState({ options: false });
 
+  // Reset the modal state every time it opens
   useEffect(() => {
     if (isOpen) {
       setOptions([{ id: crypto.randomUUID(), date: "", start: "", end: "" }]);
@@ -19,6 +25,7 @@ function CreatePollModal({ isOpen, onClose, eventId, event, onCreated }) {
     }
   }, [isOpen]);
 
+  // Helper to convert to ISO
   const toISO = (date, time24) => {
     if (!date || !time24) return null;
     const [hh, mm] = time24.split(":").map(Number);
@@ -27,6 +34,7 @@ function CreatePollModal({ isOpen, onClose, eventId, event, onCreated }) {
     return d.toISOString();
   };
 
+  // compute ISO versions of event start and end date
   const originalStartISO = (() => {
     if (!event?.date || !event?.startTime) return null;
     return toISO(event.date, convertTo24hourFormat(event.startTime));
@@ -37,33 +45,34 @@ function CreatePollModal({ isOpen, onClose, eventId, event, onCreated }) {
     return toISO(event.date, convertTo24hourFormat(event.endTime));
   })();
 
+  // close modal and reset error
   const handleClose = () => {
     setError({ options: false });
     onClose();
   };
-
+  // add new block
   const addOption = () => {
     setOptions((prev) => [
       ...prev,
       { id: crypto.randomUUID(), date: "", start: "", end: "" },
     ]);
   };
-
+  // remove an option
   const removeOption = (id) => {
     setOptions((prev) => prev.filter((o) => o.id !== id));
   };
-
+  // update a specific field (start, end, or date)
   const updateOption = (id, field, value) => {
     setOptions((prev) => prev.map((o) => (o.id === id ? { ...o, [field]: value } : o)));
     if (error.options) setError((e) => ({ ...e, options: false }));
   };
-
+  // called when user clicks "Create Poll"
   const handleCreatePoll = async () => {
     const original =
       originalStartISO && originalEndISO
         ? [{ id: "original", startISO: originalStartISO, endISO: originalEndISO }]
         : [];
-
+    // Format valid user added options
     const extras = options
       .filter((o) => o.date && o.start && o.end)
       .map((o) => {
@@ -72,9 +81,9 @@ function CreatePollModal({ isOpen, onClose, eventId, event, onCreated }) {
         return startISO && endISO ? { id: o.id, startISO, endISO } : null;
       })
       .filter(Boolean);
-
+    // Merge original + new options
     const allOptions = [...original, ...extras];
-
+    // Validate that at least one valid option
     const newErrors = { options: allOptions.length === 0 };
     setError(newErrors);
     const hasErrors = Object.values(newErrors).some(Boolean);
@@ -82,6 +91,7 @@ function CreatePollModal({ isOpen, onClose, eventId, event, onCreated }) {
 
     setSubmitting(true);
     try {
+        // Create poll document in Firestore
       const created = await createPoll(eventId, {
         title: event?.title ? `${event.title} — Time Poll` : "Time Poll",
         options: allOptions,
@@ -101,7 +111,7 @@ function CreatePollModal({ isOpen, onClose, eventId, event, onCreated }) {
     }
   };
 
-  // Do the conditional render HERE (after hooks have been called)
+
   if (!isOpen) return null;
 
   return (

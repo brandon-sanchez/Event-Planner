@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { getEventPolls, getPollVotes, voteOnPoll } from "../../services/pollService";
-
+// helper to format ISO date strings to readable form
 const fmt = (iso) => {
   try {
     const d = new Date(iso);
@@ -9,20 +9,28 @@ const fmt = (iso) => {
     return iso;
   }
 };
-
+// lists all polls for loaded events
+// lists event, time options, and allows for voting
 function PollsList({ events, refresh = 0 }) {
+    // State: list of all polls (across all events)
   const [polls, setPolls] = useState([]);
+  // State: map of poll votes keyed by "eventId:pollId"
   const [votesByPoll, setVotesByPoll] = useState({});
+  // State: map of locally selected options for each poll
   const [selectedByPoll, setSelectedByPoll] = useState({});
-  const [loading, setLoading] = useState(true);
+  // Whether the poll list is currently loading
 
+  const [loading, setLoading] = useState(true);
+  // fetch polls and votes
   useEffect(() => {
     let cancelled = false;
+
     const load = async () => {
       setLoading(true);
       console.log("[PollsList] effect run. events.length=", events.length, "refresh=", refresh);
       try {
         const all = [];
+        // Fetch all polls for every event the user has loaded
         for (const ev of events) {
             console.log("[PollsList] fetching polls for event:", ev.id);
           const ps = await getEventPolls(ev.id);
@@ -30,11 +38,12 @@ function PollsList({ events, refresh = 0 }) {
 
         }
         if (!cancelled) setPolls(all);
-
+        // Fetch votes for each poll after we have the poll list
         const votesMap = {};
         for (const p of all) {
           votesMap[`${p.eventId}:${p.pollId}`] = await getPollVotes(p.eventId, p.pollId);
         }
+        // Apply results to state if component still mounted
         if (!cancelled) {
             console.log("[PollsList] total polls loaded:", all.length);
             setVotesByPoll(votesMap);
@@ -48,7 +57,7 @@ function PollsList({ events, refresh = 0 }) {
     load();
     return () => { cancelled = true; };
   }, [events, refresh]);
-
+ // Toggle selection of a poll option in the local UI (checkbox behavior).
   const toggleSelect = (pollKey, optionId) => {
     setSelectedByPoll((prev) => {
       const next = new Set(prev[pollKey] || []);
@@ -57,7 +66,7 @@ function PollsList({ events, refresh = 0 }) {
       return { ...prev, [pollKey]: next };
     });
   };
-
+ // Submit a vote for a given poll.
   const submitVote = async (p) => {
     const pollKey = `${p.eventId}:${p.pollId}`;
     const selected = Array.from(selectedByPoll[pollKey] || []);
@@ -74,7 +83,7 @@ function PollsList({ events, refresh = 0 }) {
       alert("Failed to submit vote.");
     }
   };
-
+  // Returns a list of voter IDs who voted for a specific option.
   const votersFor = (pollKey, optionId) => {
     const list = votesByPoll[pollKey] || [];
     return list
