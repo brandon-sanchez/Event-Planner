@@ -1,13 +1,14 @@
 import { useState, useRef, useEffect } from "react";
-import { auth } from "../../config/firebase";
-import { getCurrentUser } from "../../utils/Utils";
+import { auth, db } from "../../config/firebase";
+import { getCurrentUser, getCurrentUserId } from "../../utils/Utils";
 import { convertTo12HourFormat } from "./CalendarUtils";
 import CreateEventModal from "./CreateEventModal";
 import CalendarHeader from "./CalendarHeader";
 import CalendarGrid from "./CalendarGrid";
 import UpcomingEventsList from "./UpcomingEventsList";
 import EventHoverCard from "./EventHoverCard";
-import { createEvent, getUserEvents, deleteEvent, updateEvent } from "../../services/eventService";
+import { createEvent, deleteEvent, updateEvent, leaveEvent } from "../../services/eventService";
+import { collection, onSnapshot } from "firebase/firestore";
 
 function Calendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -23,19 +24,45 @@ function Calendar() {
   const currentUser = getCurrentUser(auth);
 
   useEffect(() => {
-    const loadEvents = async () => {
+    const setupEventListener = async () => {
       try {
-        console.log('📥 Loading events from Firestore...');
-        const fetchedEvents = await getUserEvents();
-        setEvents(fetchedEvents);
-        setIsLoading(false);
+        console.log('Setting up real-time events listener...');
+
+        const userId = getCurrentUserId();
+
+        //reference to user's events collection
+        const eventsRef = collection(db, 'users', userId, 'events');
+
+        const unsubscribe = onSnapshot(eventsRef, (querySnapshot) => {
+          const fetchedEvents = [];
+
+          querySnapshot.forEach((doc) => {
+            fetchedEvents.push({
+              id: doc.id,
+              ...doc.data()
+            });
+          });
+
+          setEvents(fetchedEvents);
+          setIsLoading(false);
+        }, (error) => {
+          console.error('Error listening to events:', error);
+          setIsLoading(false);
+        });
+
+        
+        return () => {
+          console.log('Unsubscribing from events listener');
+          unsubscribe();
+        };
+
       } catch (error) {
-        console.error('Failed to load events:', error);
+        console.error('Failed to setup event listener:', error);
         setIsLoading(false);
       }
     };
 
-    loadEvents();
+    setupEventListener();
   }, []);
 
 
@@ -84,8 +111,10 @@ function Calendar() {
       setShowCreateModal(false);
 
       console.log('Event created successfully:');
+      return createdEvent;
     } catch (error) {
       console.log('Error creating event:', error);
+      throw error;
     }
     
   };
@@ -112,6 +141,28 @@ function Calendar() {
       }
 
 
+  };
+
+  
+  const handleLeaveEvent = async (eventId) => {
+    // ask user for confirmation
+    const confirmed = window.confirm("Are you sure you want to leave this event?");
+    if (!confirmed) return;
+
+    // hold previous events in case of error
+    const prev = events;
+    setEvents(curr => curr.filter(e => e.id !== eventId));
+
+    // try to leave event
+    try {
+      await leaveEvent(eventId);
+      console.log('Successfully left event');
+    } catch (err) {
+      // if error, show message and restore previous state
+      console.error('Failed to leave event:', err);
+      alert('Failed to leave event. Please try again.');
+      setEvents(prev);
+    }
   };
 
   const handleEditEvent = (event) => {
@@ -185,6 +236,7 @@ function Calendar() {
         <UpcomingEventsList
             events={events}
             onDeleteEvent={handleDeleteEvent}
+            onLeaveEvent={handleLeaveEvent}
             onEditEvent={handleEditEvent}
         />
       </div>
@@ -196,6 +248,7 @@ function Calendar() {
         onMouseEnter={handleHoverCardEnter}
         onMouseLeave={handleEventLeave}
         onDeleteEvent={handleDeleteEvent}
+        onLeaveEvent={handleLeaveEvent}
         onEditEvent={handleEditEvent}
       />
 

@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth, googleProvider, githubProvider } from "../config/firebase";
 import { GoogleLoginButton, GithubLoginButton } from "react-social-login-buttons";
+import { createOrUpdateUserProfile } from "../services/userService";
 
 function Signup() {
   const [email, setEmail] = useState('');
@@ -17,7 +18,14 @@ function Signup() {
     setLoading(true);
 
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+
+      await createOrUpdateUserProfile({
+        email: userCredential.user.email,
+        displayName: userCredential.user.displayName || email.split('@')[0],
+        photoURL: userCredential.user.photoURL
+      });
+
       navigate('/dashboard');
     } catch (err) {
       setError(err.message);
@@ -31,7 +39,14 @@ function Signup() {
     setLoading(true);
 
     try {
-      await signInWithPopup(auth, googleProvider);
+      const userCredential = await signInWithPopup(auth, googleProvider);
+
+      await createOrUpdateUserProfile({
+        email: userCredential.user.email,
+        displayName: userCredential.user.displayName,
+        photoURL: userCredential.user.photoURL
+      });
+
       navigate('/dashboard');
     } catch (err) {
       setError(err.message);
@@ -45,7 +60,14 @@ function Signup() {
     setLoading(true);
 
     try {
-      await signInWithPopup(auth, githubProvider);
+      const userCredential = await signInWithPopup(auth, githubProvider);
+
+      await createOrUpdateUserProfile({
+        email: userCredential.user.email,
+        displayName: userCredential.user.displayName,
+        photoURL: userCredential.user.photoURL
+      });
+
       navigate('/dashboard');
     } catch (err) {
       setError(err.message);

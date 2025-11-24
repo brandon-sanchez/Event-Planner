@@ -3,6 +3,8 @@ import { X } from "lucide-react";
 import { getColorClasses } from "../../utils/Utils";
 import Autocomplete from "react-google-autocomplete";
 import { convertTo24hourFormat } from "./CalendarUtils";
+import { sendMultipleInvitations } from "../../services/invitationService";
+import { findUserByEmail } from "../../services/userService";
 
 function CreateEventModal({ isOpen, onClose, onCreateEvent, editEvent = null, onUpdateEvent }) {
   const [attendeeEmail, setAttendeeEmail] = useState("");
@@ -28,6 +30,10 @@ function CreateEventModal({ isOpen, onClose, onCreateEvent, editEvent = null, on
     endTime: false,
     location: false,
   });
+
+  const [isSendingInvites, setIsSendingInvites] = useState(false);
+
+  const [inviteResults, setInviteResults] = useState(null);
 
   const isEditingEvent = editEvent !== null;
 
@@ -68,61 +74,125 @@ function CreateEventModal({ isOpen, onClose, onCreateEvent, editEvent = null, on
 
   if (!isOpen) return null;
 
-  const addAttendee = () => {
+  const addAttendee = async () => {
     if (attendeeEmail && attendeeEmail.includes("@")) {
-      const name = attendeeEmail.split("@")[0].replace(/\./g, " ");
-      setNewEvent({
-        ...newEvent,
-        attendees: [...newEvent.attendees, { name, email: attendeeEmail }],
-      });
-      setAttendeeEmail("");
+      try {
+        // Look up user profile to get their actual display name
+        const userProfile = await findUserByEmail(attendeeEmail);
+        console.log('Found user profile for attendee:', attendeeEmail, userProfile);
+
+        const attendee = {
+          name: userProfile?.displayName || attendeeEmail.split("@")[0].replace(/\./g, " "),
+          email: attendeeEmail,
+          userId: userProfile ? userProfile.id : null,
+          photoURL: userProfile?.photoURL || null,
+          status: "pending"
+        };
+        console.log('Created attendee object:', attendee);
+
+        setNewEvent({
+          ...newEvent,
+          attendees: [...newEvent.attendees, attendee],
+        });
+        setAttendeeEmail("");
+      } catch (error) {
+        console.error('Error looking up user:', error);
+        // Fallback to email prefix if lookup fails
+        const name = attendeeEmail.split("@")[0].replace(/\./g, " ");
+        setNewEvent({
+          ...newEvent,
+          attendees: [...newEvent.attendees, {
+            name,
+            email: attendeeEmail,
+            userId: null,
+            photoURL: null,
+            status: "pending"
+          }],
+        });
+        setAttendeeEmail("");
+      }
     }
   };
 
-  const handleSavingEvent = () => {
+  const handleSavingEvent = async () => {
+    //validate form fields
     const newErrors = {
       title: !newEvent.title,
       date: !newEvent.date,
       startTime: !newEvent.startTime,
       endTime: !newEvent.endTime,
-      location: !newEvent.isVirtual && !newEvent.location, 
+      location: !newEvent.isVirtual && !newEvent.location,
     };
     setError(newErrors);
-
 
     //check if there are any errors
     const hasErrors = Object.values(newErrors).some(error => error === true);
 
-    if(!hasErrors) {
-      if (isEditingEvent) {
-        onUpdateEvent(editEvent.id, newEvent);
-      } else {
-        onCreateEvent(newEvent);
+    if (!hasErrors) {
+      try {
+        let createdEvent = null;
+
+        //create or update the event
+        if (isEditingEvent) {
+          // update existing event
+          await onUpdateEvent(editEvent.id, newEvent);
+        } else {
+          //create new event
+          createdEvent = await onCreateEvent(newEvent);
+        }
+
+        //send invitations if this is a group event with attendees
+        if (newEvent.isGroupEvent && newEvent.attendees.length > 0 && !isEditingEvent) {
+          setIsSendingInvites(true);
+
+          // extract just the email addresses from attendees array
+          const attendeeEmails = newEvent.attendees.map(a => a.email);
+
+          console.log(`Sending invitations to: ${attendeeEmails.join(', ')}`);
+
+          //send invitations to all attendees with the created event ID
+          const results = await sendMultipleInvitations(attendeeEmails, createdEvent);
+
+          //store the results to show feedback to user
+          setInviteResults(results);
+
+          console.log(`Sent ${results.successful.length} invitations`);
+          if (results.failed.length > 0) {
+            console.log(`Failed to send ${results.failed.length} invitations:`,
+              results.failed.map(f => `${f.email}: ${f.error}`).join(', ')
+            );
+          }
+
+          setIsSendingInvites(false);
+        }
+
+        //reset form
+        setNewEvent({
+          title: "",
+          description: "",
+          date: "",
+          startTime: "",
+          endTime: "",
+          location: "",
+          isVirtual: false,
+          isGroupEvent: false,
+          color: "blue",
+          attendees: [],
+        });
+
+        //clear errors
+        setError({
+          title: false,
+          date: false,
+          startTime: false,
+          endTime: false,
+          location: false,
+        });
+
+      } catch (error) {
+        console.error('Error creating event or sending invitations:', error);
+        alert('Error creating event. Please try again.');
       }
-
-      //reseting form
-      setNewEvent({
-        title: "",
-        description: "",
-        date: "",
-        startTime: "",
-        endTime: "",
-        location: "",
-        isVirtual: false,
-        isGroupEvent: false,
-        color: "blue",
-        attendees: [],
-      });
-      
-
-      //clear errors
-      setError({
-        title: false,
-        date: false,
-        startTime: false,
-        endTime: false,
-        location: false,
-      });
     }
   };
 
@@ -355,6 +425,52 @@ function CreateEventModal({ isOpen, onClose, onCreateEvent, editEvent = null, on
             </div>
           )}
 
+          {/*status of sending invites*/}
+          {inviteResults && (
+            <div className="mt-4 p-3 bg-gray-700 rounded-lg border border-gray-600">
+              <h3 className="text-sm font-medium text-white mb-2">
+                Invitation Results:
+              </h3>
+
+              {/*successful invites*/}
+              {inviteResults.successful.length > 0 && (
+                <div className="mb-2">
+                  <h4 className="text-xs text-green-400 mb-1">
+                    Successfully sent to {inviteResults.successful.length} user(s):
+                  </h4>
+                  <ul className="text-xs text-gray-300 ml-4">
+                    {inviteResults.successful.map((inv, idx) => (
+                      <li key={idx}>{inv.recipientEmail}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/*failed invites*/}
+              {inviteResults.failed.length > 0 && (
+                <div>
+                  <p className="text-xs text-red-400 mb-1">
+                    Failed to send to {inviteResults.failed.length} email(s):
+                  </p>
+                  <ul className="text-xs text-gray-300 ml-4">
+                    {inviteResults.failed.map((result, idx) => (
+                      <li key={idx}>
+                        • {result.email} ({result.error})
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              <button
+                onClick={() => setInviteResults(null)}
+                className="mt-2 text-xs text-blue-400 hover:text-blue-300"
+              >
+                Dismiss
+              </button>
+            </div>
+          )}
+
           {/*cancel button*/}
           <div className="flex justify-end space-x-3 pt-4">
             <button
@@ -365,9 +481,17 @@ function CreateEventModal({ isOpen, onClose, onCreateEvent, editEvent = null, on
             </button>
             <button
               onClick={handleSavingEvent}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              disabled={isSendingInvites}
+              className={`px-6 py-2 text-white rounded-lg ${
+                  isSendingInvites 
+                    ? 'bg-blue-400 cursor-not-allowed' 
+                    : 'bg-blue-600 hover:bg-blue-700'
+                }`}
             >
-              {isEditingEvent ? "Update Event" : "Create Event"}
+              {isSendingInvites
+                  ? "Sending invites..."
+                  : (isEditingEvent ? "Update Event" : "Create Event")
+                }
             </button>
           </div>
         </div>

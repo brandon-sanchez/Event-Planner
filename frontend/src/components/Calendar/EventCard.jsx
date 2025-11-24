@@ -1,6 +1,6 @@
 import { MapPin, Video } from "lucide-react";
-import { getInitials } from "../../utils/Utils";
 import { getColorClasses } from "../../utils/Utils";
+import Avatar from "../Avatar";
 
 function EventCard({ event, onMouseEnter, onMouseLeave }) {
   return (
@@ -22,12 +22,12 @@ function EventCard({ event, onMouseEnter, onMouseLeave }) {
       {event.attendees && event.attendees.length > 0 && (
         <div className="flex items-center -space-x-1.5">
           {event.attendees.slice(0, 4).map((attendee, idx) => (
-            <div
-              key={idx}
-              className="w-5 h-5 rounded-full bg-blue-500 border-2 border-white flex items-center justify-center text-[9px] font-medium"
-              title={attendee.name}
-            >
-              {getInitials(attendee.name)}
+            <div key={idx} title={attendee.name || attendee.email}>
+              <Avatar
+                name={attendee.name || attendee.email}
+                photoURL={attendee.photoURL}
+                size="xs"
+              />
             </div>
           ))}
           {event.attendees.length > 4 && (

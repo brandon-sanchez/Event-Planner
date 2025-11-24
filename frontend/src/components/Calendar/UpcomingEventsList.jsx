@@ -1,8 +1,8 @@
-import { Calendar as CalendarIcon, Trash2, Pencil } from "lucide-react";
-import { getColorClasses, formatDate } from "../../utils/Utils";
+import { Calendar as CalendarIcon, Trash2, Pencil, LogOut, Clock, MapPin, Video } from "lucide-react";
+import { getColorClasses } from "../../utils/Utils";
 import { parseTime } from "./CalendarUtils";
 
-function UpcomingEventsList({ events, onDeleteEvent, onEditEvent }) {
+function UpcomingEventsList({ events, onDeleteEvent, onEditEvent, onLeaveEvent }) {
   const upcomingEvents = events
     .filter((event) => {
       if (!event.endTime || !event.startTime || !event.date) {
@@ -44,39 +44,86 @@ function UpcomingEventsList({ events, onDeleteEvent, onEditEvent }) {
           </div>
         ) : (
           upcomingEvents.map((event) => (
-            <div key={event.id} className="flex items-start space-x-3 group">
-              <div
-                className={`w-2 h-2 rounded-full mt-2 ${getColorClasses(event.color, "bgDot")}`}
-              />
-              <div className="flex-1">
-                <h4 className="font-medium">{event.title}</h4>
-                <div className="text-sm text-gray-400">
-                  {formatDate(event.date)} • {event.startTime} - {event.endTime}
-                </div>
-                <div className="text-sm text-gray-400">
-                  {event.isVirtual ? "Virtual Meeting" : event.location}
-                </div>
-              </div>
+            <div
+              key={event.id}
+              className={`relative rounded-lg p-4 group border-l-4 ${getColorClasses(event.color || 'blue', "border")}`}
+              style={{ backgroundColor: `${getColorClasses(event.color || 'blue', 'bgHex')}40` }}
+            >
+              {/* buttons */}
+              <div className="absolute top-2 right-2 flex items-center gap-1">
+                <button
+                  onClick={() => onEditEvent(event)}
+                  aria-label={`Edit ${event.title}`}
+                  title="Edit event"
+                  className="rounded-md p-1.5 text-blue-400 opacity-0 transition-opacity hover:text-blue-300 hover:bg-blue-500/10 group-hover:opacity-100"
+                >
+                  <Pencil className="h-4 w-4" />
+                </button>
 
-                <div className="flex items-center gap-1">
+                {event.isSharedEvent ? (
                   <button
-                    onClick={() => onEditEvent(event)}
-                    aria-label={`Edit ${event.title}`}
-                    title="Edit event"
-                    className="mt-1 rounded-md p-1.5 text-blue-400 opacity-0 transition-opacity hover:text-blue-300 hover:bg-blue-500/10 group-hover:opacity-100"
+                    onClick={() => onLeaveEvent && onLeaveEvent(event.id)}
+                    aria-label={`Leave ${event.title}`}
+                    title="Leave Group Event"
+                    className="rounded-md p-1.5 text-orange-400 opacity-0 transition-opacity hover:text-orange-300 hover:bg-orange-500/10 group-hover:opacity-100"
                   >
-                    <Pencil className="h-4 w-4" />
+                    <LogOut className="h-4 w-4" />
                   </button>
-
+                ) : (
                   <button
                     onClick={() => onDeleteEvent(event.id)}
                     aria-label={`Delete ${event.title}`}
                     title="Delete event"
-                    className="mt-1 rounded-md p-1.5 text-red-400 opacity-0 transition-opacity hover:text-red-300 hover:bg-red-500/10 group-hover:opacity-100"
+                    className="rounded-md p-1.5 text-red-400 opacity-0 transition-opacity hover:text-red-300 hover:bg-red-500/10 group-hover:opacity-100"
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
+                )}
+              </div>
+
+              {/* title */}
+              <h4 className="font-semibold text-lg mb-3 pr-16">{event.title}</h4>
+
+              {(event.isSharedEvent || (event.attendees && event.attendees.length > 0)) && (
+                <div className="mb-2">
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                    Group Event
+                  </span>
                 </div>
+              )}
+
+              {/* date */}
+              <div className="flex items-center text-sm text-gray-300 mb-2">
+                <CalendarIcon className="w-4 h-4 mr-2 flex-shrink-0" />
+                <span>
+                  {(() => {
+                    const [year, month, day] = event.date.split('-');
+                    const date = new Date(year, month - 1, day);
+                    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                  })()}
+                </span>
+              </div>
+
+              {/* time */}
+              <div className="flex items-center text-sm text-gray-300 mb-2">
+                <Clock className="w-4 h-4 mr-2 flex-shrink-0" />
+                <span>{event.startTime} - {event.endTime}</span>
+              </div>
+
+              {/* location */}
+              <div className="flex items-center text-sm text-gray-300">
+                {event.isVirtual ? (
+                  <>
+                    <Video className="w-4 h-4 mr-2 flex-shrink-0" />
+                    <span>Virtual Meeting</span>
+                  </>
+                ) : (
+                  <>
+                    <MapPin className="w-4 h-4 mr-2 flex-shrink-0" />
+                    <span>{event.location || "TBD"}</span>
+                  </>
+                )}
+              </div>
             </div>
           ))
         )}
