@@ -82,19 +82,7 @@ function EventHoverCard({
             Shared Event
           </span>
 
-          {/* owner info */}
-          {event.createdBy && (
-            <div className="flex items-center space-x-2 mt-2">
-              <Avatar
-                name={event.createdBy.displayName || event.createdBy.email}
-                photoURL={event.createdBy.photoURL || null}
-                size="sm"
-              />
-              <div className="text-xs">
-                <span className="text-gray-300">by {event.createdBy.displayName || event.createdBy.email}</span>
-              </div>
-            </div>
-          )}
+          
         </div>
       )}
 

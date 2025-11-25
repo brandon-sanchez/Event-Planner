@@ -14,7 +14,10 @@ export default function Header({
   const navigate = useNavigate();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [currentUser, setCurrentUser] = useState({
-    name: auth.currentUser?.displayName || auth.currentUser?.email?.split("@")[0] || "User",
+    name:
+      auth.currentUser?.displayName ||
+      auth.currentUser?.email?.split("@")[0] ||
+      "User",
     email: auth.currentUser?.email || "user@example.com",
     photoURL: auth.currentUser?.photoURL || null,
   });
@@ -28,7 +31,11 @@ export default function Header({
           const userProfile = await getUserProfile(user.uid);
           if (userProfile) {
             setCurrentUser({
-              name: userProfile.displayName || user.displayName || user.email?.split("@")[0] || "User",
+              name:
+                userProfile.displayName ||
+                user.displayName ||
+                user.email?.split("@")[0] ||
+                "User",
               email: userProfile.email || user.email || "user@example.com",
               photoURL: userProfile.photoURL || user.photoURL || null,
             });
@@ -41,7 +48,7 @@ export default function Header({
             });
           }
         } catch (error) {
-          console.error('Error fetching user profile in Header:', error);
+          console.error("Error fetching user profile in Header:", error);
           // Fallback to auth user data on error
           setCurrentUser({
             name: user.displayName || user.email?.split("@")[0] || "User",
@@ -100,7 +107,11 @@ export default function Header({
               onClick={() => setShowProfileMenu(!showProfileMenu)}
               className="hover:opacity-80 transition-opacity"
             >
-              <Avatar name={currentUser.name} photoURL={currentUser.photoURL} size="md" />
+              <Avatar
+                name={currentUser.name}
+                photoURL={currentUser.photoURL}
+                size="md"
+              />
             </button>
 
             {showProfileMenu && (
@@ -111,12 +122,6 @@ export default function Header({
                     {currentUser.email}
                   </div>
                 </div>
-                <button className="w-full text-left px-4 py-2 hover:bg-gray-700">
-                  Profile Settings
-                </button>
-                <button className="w-full text-left px-4 py-2 hover:bg-gray-700">
-                  My Events
-                </button>
                 <button
                   onClick={handleLogout}
                   className="w-full text-left px-4 py-2 hover:bg-gray-700 text-red-400"

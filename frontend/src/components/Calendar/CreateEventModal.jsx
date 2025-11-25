@@ -197,6 +197,24 @@ function CreateEventModal({ isOpen, onClose, onCreateEvent, editEvent = null, on
   };
 
   const handleClose = () => {
+    // reset form
+    if (!isEditingEvent) {
+      setNewEvent({
+        title: "",
+        description: "",
+        date: "",
+        startTime: "",
+        endTime: "",
+        location: "",
+        isVirtual: false,
+        isGroupEvent: false,
+        color: "blue",
+        attendees: [],
+      });
+      setAttendeeEmail("");
+      setInviteResults(null);
+    }
+
     setError({
       title: false,
       date: false,
