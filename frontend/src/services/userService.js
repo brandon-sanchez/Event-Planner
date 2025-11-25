@@ -105,5 +105,63 @@ const findUserByEmails = async (emails) => {
   }
 }
 
+const searchUsers = async(searchQuery) => {
+  try {
+    checkAuth();
 
-export { createOrUpdateUserProfile , getUserProfile, findUserByEmail, findUserByEmails };
+    const q = searchQuery.toLowerCase().trim();
+
+    //if query is empty return empty list
+    if(!q) {
+      return [];
+    }
+
+    const usersRef = collection(db, 'users');
+
+    //queries for email and displayName
+    const emailQuery = query(
+      usersRef,
+      where('email', '>=', q),
+      where('email', '<=', q + '\uf8ff')
+    );
+
+    const nameQuery = query(
+      usersRef,
+      where('displayName', '>=', q),
+      where('displayName', '<=', q + '\uf8ff')
+    );
+
+    //executing both queries and wait for all to complete
+    const [emailSnapshot, nameSnapshot] = await Promise.all([
+      getDocs(emailQuery),
+      getDocs(nameQuery)
+    ]);
+
+    //combine the results without duplicates
+    const emailResults = emailSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const nameResults = nameSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+    const seenIds = new Set();
+    const combinedResults = [];
+
+    //for each processed result add if not already seen
+    [...emailResults, ...nameResults].forEach(user => {
+      if (!seenIds.has(user.id)) {
+        seenIds.add(user.id);
+        combinedResults.push(user);
+      }
+    });
+    
+
+    //returning top 5 results
+    return combinedResults.slice(0, 5);
+  } catch (error) {
+    console.log('Error searching users:', error);
+
+    //on error return empty list
+    return []
+  }
+};
+
+
+export { createOrUpdateUserProfile , getUserProfile, findUserByEmail, findUserByEmails, searchUsers};
