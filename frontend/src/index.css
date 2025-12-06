@@ -1,5 +1,14 @@
 @import "tailwindcss";
 
+@theme {
+  --color-app-bg: #101013;
+  --color-app-card: #171719;
+  --color-app-rose: #E54878;
+  --color-app-text: #FAFAFA;
+  --color-app-border: #28282E;
+  --color-app-muted: #9E9EA6;
+}
+
 @layer utilities {
   @keyframes fadeIn {
     from {
