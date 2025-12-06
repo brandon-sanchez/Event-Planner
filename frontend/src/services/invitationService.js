@@ -9,6 +9,10 @@ const sendInvitation = async (recipientEmail, eventData) => {
     const currentUser = checkAuth();
     const senderId = currentUser.uid;
 
+    if (!eventData?.id) {
+      throw new Error('Missing event id when sending invitation.');
+    }
+
     //find recipient user by email
     const recipientUser = await findUserByEmail(recipientEmail);
 
@@ -39,13 +43,6 @@ const sendInvitation = async (recipientEmail, eventData) => {
         userId: senderId,
         email: currentUser.email,
         displayName: currentUser.displayName || currentUser.email.split('@')[0]
-      },
-
-      //event data for the invitation
-      eventData: {
-        ...eventData,
-        originalCreatorId: senderId,
-        originalCreatorEmail: currentUser.email
       },
 
       //original event reference for updating attendee status
@@ -156,15 +153,48 @@ const acceptInvitation = async (invitationId) => {
       throw new Error('Invalid invitation: missing original event ID');
     }
 
-    // use invitation data (no need to fetch creator's event - permission issue)
-    const currentAttendeeIds = invitationData.eventData.attendeeIds || [];
+    // fetch current event from creator
+    const creatorEventRef = doc(
+      db,
+      'users',
+      invitationData.originalCreatorId,
+      'events',
+      sharedEventId
+    );
 
-    // add current user to attendeeIds
-    const updatedAttendeeIds = [...currentAttendeeIds, userId];
+    const creatorEventDoc = await getDoc(creatorEventRef);
+
+    if (!creatorEventDoc.exists()) {
+      throw new Error(
+        'This event has been cancelled by the organizer. ' +
+        'The invitation is no longer valid.'
+      );
+    }
+
+    // using current event data
+    const currentEventData = creatorEventDoc.data();
+
+    // Check if user was removed from attendees
+    const isStillInvited = currentEventData.attendees?.some(
+      att => att.email === currentUser.email
+    );
+
+    if (!isStillInvited) {
+      throw new Error(
+        'You have been removed from this event by the organizer.'
+      );
+    }
+
+    const currentAttendeeIds = currentEventData.attendeeIds || [];
+
+    // add current user to attendeeIds if missing
+    const updatedAttendeeIds = currentAttendeeIds.includes(userId)
+      ? currentAttendeeIds
+      : [...currentAttendeeIds, userId];
 
     // update attendees array to mark this user as accepted
-    const updatedAttendees = invitationData.eventData.attendees ?
-      invitationData.eventData.attendees.map(attendee => {
+    const updatedAttendees = currentEventData.attendees ?
+      currentEventData.attendees.map(attendee => {
         if (attendee.email === currentUser.email) {
           return { ...attendee, status: 'accepted' };
         }
@@ -174,10 +204,10 @@ const acceptInvitation = async (invitationId) => {
     // create the event in the current user's events collection
     const eventDocRef = doc(db, 'users', userId, 'events', sharedEventId);
     await setDoc(eventDocRef, {
-      ...invitationData.eventData,
+      ...currentEventData,
       isSharedEvent: true,
       sharedFrom: invitationData.invitedBy,
-      createdBy: invitationData.eventData.createdBy || {
+      createdBy: currentEventData.createdBy || {
         userId: invitationData.originalCreatorId,
         email: invitationData.invitedBy.email,
         displayName: invitationData.invitedBy.displayName
@@ -188,6 +218,30 @@ const acceptInvitation = async (invitationId) => {
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     });
+
+    // sync acceptance back to creator and other attendee copies
+    const updatedEventPayload = {
+      ...currentEventData,
+      attendeeIds: updatedAttendeeIds,
+      attendees: updatedAttendees,
+      updatedAt: serverTimestamp()
+    };
+
+    const targetIds = Array.from(new Set(updatedAttendeeIds));
+    for (const targetId of targetIds) {
+      // we already wrote the attendee's own copy above
+      if (targetId === userId) continue;
+
+      try {
+        const targetRef = doc(db, 'users', targetId, 'events', sharedEventId);
+        const targetDoc = await getDoc(targetRef);
+        if (targetDoc.exists()) {
+          await updateDoc(targetRef, updatedEventPayload);
+        }
+      } catch (error) {
+        console.error(`Failed to sync acceptance to user ${targetId}:`, error);
+      }
+    }
 
     // update invitation status to accepted
     await updateDoc(invitiationRef, {
@@ -201,7 +255,7 @@ const acceptInvitation = async (invitationId) => {
 
     return {
       id: sharedEventId,
-      ...invitationData.eventData
+      ...currentEventData
     };
   } catch (error) {
     console.log('Error accepting invitation:', error);
@@ -212,14 +266,52 @@ const acceptInvitation = async (invitationId) => {
 const declineInvitation = async (invitationId) => {
   try {
     const userId = getCurrentUserId();
+    const currentUser = checkAuth();
 
     const invitationRef = doc(db, 'users', userId, 'invitations', invitationId);
-    
+    const invitationDoc = await getDoc(invitationRef);
+
+    if (!invitationDoc.exists()) {
+      throw new Error('Invitation not found.');
+    }
+
     await updateDoc(invitationRef, {
       status: 'declined',
       declinedAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     });
+
+    // Mark attendee as declined on the creator's event so pending badge disappears
+    const invitationData = invitationDoc.data();
+    if (invitationData.originalCreatorId && invitationData.originalEventId) {
+      try {
+        const creatorEventRef = doc(
+          db,
+          'users',
+          invitationData.originalCreatorId,
+          'events',
+          invitationData.originalEventId
+        );
+        const creatorEventDoc = await getDoc(creatorEventRef);
+
+        if (creatorEventDoc.exists()) {
+          const creatorEventData = creatorEventDoc.data();
+          const updatedAttendees = (creatorEventData.attendees || []).map((attendee) => {
+            if (attendee.email === currentUser.email) {
+              return { ...attendee, status: 'declined' };
+            }
+            return attendee;
+          });
+
+          await updateDoc(creatorEventRef, {
+            attendees: updatedAttendees,
+            updatedAt: serverTimestamp()
+          });
+        }
+      } catch (error) {
+        console.error('Failed to mark attendee declined on creator event:', error);
+      }
+    }
 
     console.log('Invitation declined:', invitationId);
   } catch (error) {
@@ -265,7 +357,6 @@ const getAllInvitations = async () => {
     throw error;
   }
 };
-
 
 
 export { sendInvitation, sendMultipleInvitations, getPendingInvitations, acceptInvitation, declineInvitation, deleteInvitation, getAllInvitations };

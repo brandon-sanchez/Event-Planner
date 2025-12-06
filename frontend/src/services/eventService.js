@@ -1,5 +1,5 @@
 import { db } from '../config/firebase';
-import { collection, addDoc, getDocs, getDoc, serverTimestamp, deleteDoc, doc, updateDoc } from 'firebase/firestore';
+import { collection, addDoc, getDocs, getDoc, serverTimestamp, deleteDoc, doc, updateDoc, query, where, writeBatch } from 'firebase/firestore';
 import { getCurrentUserId, checkAuth } from '../utils/Utils';
 
 // to reference current user's collection of events
@@ -47,22 +47,18 @@ const createEvent = async (eventData) => {
     return { id: docRef.id, ...eventData };
 
   } catch (error) {
-    console.log('Error creating event:', error);
+    console.error('Error creating event:', error);
   }
 }
 
 const getUserEvents = async() => {
   try {
-    //get logged in user ID
     const userId = getCurrentUserId();
 
-    //get logged in user's events collection reference
     const eventsRef = getUserEventsCollection(userId);
 
-    //fetch all the events documents in the collection
     const querySnapshot = await getDocs(eventsRef);
 
-    //turn the documents into an array of event objects
     const events = [] 
     querySnapshot.forEach((doc) => {
       events.push({ 
@@ -74,7 +70,7 @@ const getUserEvents = async() => {
     return events;
 
   } catch (error) {
-    console.log('Error fetching user events:', error);
+    console.error('Error fetching user events:', error);
   }
 }
 
@@ -91,39 +87,65 @@ const deleteEvent = async (eventId) => {
 
         const eventData = eventDoc.data();
 
-        console.log('Event data:', eventData);
-        console.log('Attendees:', eventData.attendees);
-
-        // if shared event, delete from all attendees' calendars first
+        // if shared event, delete from all attendees calendars first
         if (eventData.attendees && eventData.attendees.length > 0) {
-            console.log(`Deleting shared event from ${eventData.attendees.length} attendees' calendars`);
-
-            // delete event from each attendee's calendar
+            // deleting event from each attendee's calendar
             const deletePromises = eventData.attendees.map(async (attendee) => {
-                console.log('Processing attendee:', attendee);
-                console.log('Attendee userId:', attendee.userId, 'Current userId:', userId);
-
                 if (attendee.userId && attendee.userId !== userId) {
                     try {
                         const attendeeEventRef = doc(db, 'users', attendee.userId, 'events', eventId);
-                        console.log(`Attempting to delete event ${eventId} from user ${attendee.userId}`);
                         await deleteDoc(attendeeEventRef);
-                        console.log(`✓ Deleted event from attendee: ${attendee.email}`);
                     } catch (error) {
                         console.error(`✗ Failed to delete event for attendee ${attendee.email}:`, error);
                     }
-                } else {
-                    console.log(`Skipping attendee ${attendee.email} - userId: ${attendee.userId}, current: ${userId}`);
                 }
             });
 
-            // wait for all deletions to complete
             await Promise.all(deletePromises);
         }
 
-        // then delete the event from owner's calendar
+        // canceling all pending invitations for this event
+        if (eventData.attendees && eventData.attendees.length > 0) {
+            for (const attendee of eventData.attendees) {
+                if (!attendee.userId) continue;
+
+                try {
+                    const userInvitationsRef = collection(
+                        db,
+                        'users',
+                        attendee.userId,
+                        'invitations'
+                    );
+
+                    const q = query(
+                        userInvitationsRef,
+                        where('originalEventId', '==', eventId),
+                        where('status', '==', 'pending')
+                    );
+
+                    const querySnapshot = await getDocs(q);
+
+                    if (!querySnapshot.empty) {
+                        const batch = writeBatch(db);
+
+                        querySnapshot.forEach((docSnapshot) => {
+                            batch.update(docSnapshot.ref, {
+                                status: 'cancelled',
+                                cancelledAt: serverTimestamp(),
+                                updatedAt: serverTimestamp(),
+                                cancellationReason: 'Event deleted by organizer'
+                            });
+                        });
+
+                        await batch.commit();
+                    }
+                } catch (error) {
+                    console.error(`Failed to cancel invitations for ${attendee.email}:`, error);
+                }
+            }
+        }
+
         await deleteDoc(eventDocRef);
-        console.log(`Event ${eventId} deleted successfully from all users`);
 
         return eventId;
     } catch (error) {
@@ -165,11 +187,8 @@ const updateEvent = async (eventId, eventData) => {
       for (const attendee of newlyAddedAttendees) {
         try {
           await invitationService.sendInvitation(attendee.email, {
-            id: eventId,
-            ...currentEventData,
-            ...eventData
+            id: eventId
           });
-          console.log(`Sent invitation to ${attendee.email}`);
         } catch (error) {
           console.error(`Failed to send invitation to ${attendee.email}:`, error);
         }
@@ -177,7 +196,6 @@ const updateEvent = async (eventId, eventData) => {
     }
 
     // update attendeeIds array based on updated attendees list
-    // always include creator for collaborative editing
     const creatorId = currentEventData.createdBy?.userId || userId;
     const updatedAttendeeIds = [creatorId];
 
@@ -226,11 +244,49 @@ const updateEvent = async (eventId, eventData) => {
       }
     }
 
-    console.log('Event updated successfully for all attendees');
+    //finding removed attendees and cancel their invitations
+    const removedAttendees = oldAttendees.filter(oldAtt =>
+      !newAttendees.some(newAtt => newAtt.email === oldAtt.email)
+    );
+
+    if (removedAttendees.length > 0) {
+      for (const removedAttendee of removedAttendees) {
+        if (!removedAttendee.userId) continue;
+
+        try {
+          const userInvitationsRef = collection(
+            db,
+            'users',
+            removedAttendee.userId,
+            'invitations'
+          );
+
+          const q = query(
+            userInvitationsRef,
+            where('originalEventId', '==', eventId),
+            where('status', '==', 'pending')
+          );
+
+          const snapshot = await getDocs(q);
+
+          snapshot.forEach(async (docSnapshot) => {
+            await updateDoc(docSnapshot.ref, {
+              status: 'cancelled',
+              cancelledAt: serverTimestamp(),
+              updatedAt: serverTimestamp(),
+              cancellationReason: 'Removed from event by organizer'
+            });
+          });
+
+        } catch (error) {
+          console.error(`Failed to cancel invitation for ${removedAttendee.email}:`, error);
+        }
+      }
+    }
 
     return { id: eventId, ...eventData };
   } catch (error) {
-    console.log('Error updating the event:', error);
+    console.error('Error updating the event:', error);
     throw error;
   }
 };
@@ -257,7 +313,6 @@ const leaveEvent = async (eventId) => {
     // remove the event from the user's calendar
     await deleteDoc(eventDocRef);
 
-    console.log(`Left shared event: ${eventId}`);
     return eventId;
 
   } catch (error) {
@@ -267,4 +322,3 @@ const leaveEvent = async (eventId) => {
 };
 
 export { createEvent, getUserEvents, deleteEvent, updateEvent, leaveEvent };
-

@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import { signOut, onAuthStateChanged } from "firebase/auth";
-import { auth } from "../config/firebase";
+import { auth } from "../../config/firebase";
 import { useNavigate } from "react-router-dom";
 import Avatar from "./Avatar";
-import { getUserProfile } from "../services/userService";
+import { getUserProfile } from "../../services/userService";
 import NotificationBell from "./NotificationBell";
 
 export default function Header({
@@ -87,7 +87,7 @@ export default function Header({
   };
 
   return (
-    <header className="bg-gray-800 border-b border-gray-700 px-6 py-4">
+    <header className="bg-app-card border-b border-app-border px-6 py-4">
       <div className="flex justify-between items-center">
         <div className="flex items-center space-x-3">
           <h1 className="text-xl font-semibold">Dashboard</h1>
@@ -115,16 +115,16 @@ export default function Header({
             </button>
 
             {showProfileMenu && (
-              <div className="absolute right-0 mt-2 w-56 bg-gray-800 rounded-lg shadow-xl py-2 z-50 border border-gray-700">
-                <div className="px-4 py-2 border-b border-gray-700">
+              <div className="absolute right-0 mt-2 w-56 bg-app-card rounded-lg shadow-xl py-2 z-50 border border-app-border">
+                <div className="px-4 py-2 border-b border-app-border">
                   <div className="font-medium">{currentUser.name}</div>
-                  <div className="text-sm text-gray-400">
+                  <div className="text-sm text-app-muted">
                     {currentUser.email}
                   </div>
                 </div>
                 <button
                   onClick={handleLogout}
-                  className="w-full text-left px-4 py-2 hover:bg-gray-700 text-red-400"
+                  className="w-full text-left px-4 py-2 hover:bg-app-bg text-red-400"
                 >
                   Log out
                 </button>

@@ -14,7 +14,7 @@ function CalendarHeader({
       <div className="flex flex-wrap items-center gap-2">
         <button
           onClick={onCreateEvent}
-          className="flex items-center space-x-2 px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
+          className="flex items-center space-x-2 px-3 sm:px-4 py-2 bg-app-rose text-white rounded-lg hover:opacity-90 transition-opacity text-sm"
         >
           <Plus className="w-4 h-4" />
           <span className="hidden sm:inline">Create Event</span>
@@ -23,19 +23,19 @@ function CalendarHeader({
         <div className="flex items-center space-x-1">
           <button
             onClick={onGoToToday}
-            className="px-3 py-1 text-sm bg-gray-700 rounded hover:bg-gray-600"
+            className="px-3 py-1 text-sm bg-app-card rounded hover:bg-app-border transition-colors"
           >
             Today
           </button>
           <button
             onClick={() => onNavigateMonth(-1)}
-            className="p-1 hover:bg-gray-700 rounded"
+            className="p-1 hover:bg-app-card rounded transition-colors"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
           <button
             onClick={() => onNavigateMonth(1)}
-            className="p-1 hover:bg-gray-700 rounded"
+            className="p-1 hover:bg-app-card rounded transition-colors"
           >
             <ChevronRight className="w-5 h-5" />
           </button>

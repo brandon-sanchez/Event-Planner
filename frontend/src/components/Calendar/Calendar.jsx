@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { auth, db } from "../../config/firebase";
-import { getCurrentUser, getCurrentUserId } from "../../utils/Utils";
+import { onAuthStateChanged } from "firebase/auth";
+import { getCurrentUser } from "../../utils/Utils";
 import { convertTo12HourFormat } from "./CalendarUtils";
 import CreateEventModal from "./CreateEventModal";
 import CalendarHeader from "./CalendarHeader";
@@ -16,55 +17,65 @@ function Calendar() {
   const [isLoading, setIsLoading] = useState(true);
   const [hoveredEvent, setHoveredEvent] = useState(null);
   const [hoverPosition, setHoverPosition] = useState({ x: 0, y: 0 });
+  const [hoverAnchor, setHoverAnchor] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [isHoverCardFading, setIsHoverCardFading] = useState(false);
   const [editingEvent, setEditingEvent] = useState(null);
+  const hoverCardRef = useRef(null);
   const hoverTimeoutRef = useRef(null);
 
   const currentUser = getCurrentUser(auth);
 
   useEffect(() => {
-    const setupEventListener = async () => {
-      try {
-        console.log('Setting up real-time events listener...');
+    let eventsUnsub = null;
 
-        const userId = getCurrentUserId();
+    const authUnsub = onAuthStateChanged(auth, (user) => {
+      if (eventsUnsub) {
+        eventsUnsub();
+        eventsUnsub = null;
+      }
 
-        //reference to user's events collection
-        const eventsRef = collection(db, 'users', userId, 'events');
+      if (!user) {
+        setEvents([]);
+        setIsLoading(false);
+        return;
+      }
 
-        const unsubscribe = onSnapshot(eventsRef, (querySnapshot) => {
+      const eventsRef = collection(db, "users", user.uid, "events");
+
+      eventsUnsub = onSnapshot(
+        eventsRef,
+        (querySnapshot) => {
           const fetchedEvents = [];
 
           querySnapshot.forEach((doc) => {
             fetchedEvents.push({
               id: doc.id,
-              ...doc.data()
+              ...doc.data(),
             });
           });
 
           setEvents(fetchedEvents);
           setIsLoading(false);
-        }, (error) => {
-          console.error('Error listening to events:', error);
+        },
+        (error) => {
+          console.error("Error listening to events:", error);
           setIsLoading(false);
-        });
+        }
+      );
+    });
 
-        
-        return () => {
-          console.log('Unsubscribing from events listener');
-          unsubscribe();
-        };
-
-      } catch (error) {
-        console.error('Failed to setup event listener:', error);
-        setIsLoading(false);
-      }
+    return () => {
+      if (eventsUnsub) eventsUnsub();
+      authUnsub();
     };
-
-    setupEventListener();
   }, []);
 
+  const clampHoverY = (desiredCenterY, cardHeight, padding) => {
+    const minCenterY = padding + cardHeight / 2;
+    const maxCenterY = Math.max(minCenterY, window.innerHeight - padding - cardHeight / 2);
+    return Math.min(Math.max(desiredCenterY, minCenterY), maxCenterY);
+  };
 
   const handleEventHover = (event, e) => {
     if (hoverTimeoutRef.current) {
@@ -72,9 +83,14 @@ function Calendar() {
     }
 
     const rect = e.currentTarget.getBoundingClientRect();
+    const padding = 12;
+    const fallbackHeight = Math.max(120, window.innerHeight - padding * 2);
+    const desiredCenterY = rect.top + rect.height / 2;
+
+    setHoverAnchor({ top: rect.top, right: rect.right, height: rect.height });
     setHoverPosition({
       x: rect.right + 10,
-      y: rect.top + rect.height / 2,
+      y: clampHoverY(desiredCenterY, fallbackHeight, padding),
     });
     setHoveredEvent(event);
     setIsHoverCardFading(false);
@@ -95,6 +111,25 @@ function Calendar() {
     }
     setIsHoverCardFading(false);
   };
+
+  useEffect(() => {
+    if (!hoveredEvent || !hoverAnchor || !hoverCardRef.current) return;
+
+    const padding = 12;
+    const desiredCenterY = hoverAnchor.top + hoverAnchor.height / 2;
+
+    const rafId = requestAnimationFrame(() => {
+      const cardHeight = hoverCardRef.current?.offsetHeight;
+      if (!cardHeight) return;
+
+      setHoverPosition((pos) => ({
+        ...pos,
+        y: clampHoverY(desiredCenterY, cardHeight, padding),
+      }));
+    });
+
+    return () => cancelAnimationFrame(rafId);
+  }, [hoveredEvent, hoverAnchor]);
 
   const handleCreateEvent = async (newEvent)  => {
     try {
@@ -250,6 +285,7 @@ function Calendar() {
         onDeleteEvent={handleDeleteEvent}
         onLeaveEvent={handleLeaveEvent}
         onEditEvent={handleEditEvent}
+        cardRef={hoverCardRef}
       />
 
       <CreateEventModal

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { getInitials } from "../utils/Utils";
+import { getInitials } from "../../utils/Utils";
 
 const Avatar = ({ name, photoURL, size = "sm" }) => {
   const [imageError, setImageError] = useState(false);
@@ -22,7 +22,7 @@ const Avatar = ({ name, photoURL, size = "sm" }) => {
       <img
         src={photoURL}
         alt={`${name}'s profile`}
-        className={`${sizeClasses[size]} rounded-full object-cover border-2 border-blue-500`}
+        className={`${sizeClasses[size]} rounded-full object-cover border-2 border-app-rose`}
         crossOrigin="anonymous"
         referrerPolicy="no-referrer"
         onError={() => {
@@ -35,7 +35,7 @@ const Avatar = ({ name, photoURL, size = "sm" }) => {
   // if no photoURL or image failed to load, show initials avatar
   return (
     <div
-      className={`${sizeClasses[size]} rounded-full bg-blue-600 flex items-center justify-center text-white font-medium border-2 border-blue-500`}
+      className={`${sizeClasses[size]} rounded-full bg-app-rose flex items-center justify-center text-white font-medium border-2 border-app-rose`}
     >
       {getInitials(name)}
     </div>

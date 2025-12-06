@@ -1,4 +1,4 @@
-import Header from '../components/Header';
+import Header from '../components/Header/Header';
 import Calendar from '../components/Calendar/Calendar';
 import { db } from '../config/firebase';
 import { collection, where, onSnapshot, query } from 'firebase/firestore';
@@ -40,8 +40,8 @@ function Dashboard() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
-      <Header 
+    <div className="min-h-screen bg-app-bg text-app-text">
+      <Header
         invitations={invitations}
       />
       <main className="container mx-auto px-6 py-8">

@@ -1,7 +1,9 @@
-import {useState} from "react";
+import {useEffect, useState} from "react";
 import { Calendar, Clock, MapPin, User, Check, X } from "lucide-react";
-import { getColorClasses } from "../utils/Utils";
-import { acceptInvitation, declineInvitation } from "../services/invitationService";
+import { getColorClasses, formatDate } from "../../utils/Utils";
+import { acceptInvitation, declineInvitation } from "../../services/invitationService";
+import { db } from "../../config/firebase";
+import { doc, onSnapshot } from "firebase/firestore";
 
 function InvitationsPanel({
   invitations,
@@ -10,8 +12,61 @@ function InvitationsPanel({
   isInDropdown = false,
 }) {
   const [processingId, setProcessingId] = useState(null);
+  const [eventDetails, setEventDetails] = useState({});
+
+  // subscribe to live event data for each invitation so updates show up
+  useEffect(() => {
+    if (!invitations || invitations.length === 0) {
+      setEventDetails({});
+      return;
+    }
+
+    const unsubscribes = invitations.map((invitation) => {
+      if (!invitation.originalCreatorId || !invitation.originalEventId) {
+        return null;
+      }
+
+      const eventRef = doc(
+        db,
+        "users",
+        invitation.originalCreatorId,
+        "events",
+        invitation.originalEventId
+      );
+
+      return onSnapshot(
+        eventRef,
+        (snapshot) => {
+          setEventDetails((prev) => ({
+            ...prev,
+            [invitation.id]: snapshot.exists() ? snapshot.data() : null,
+          }));
+        },
+        (error) => {
+          console.log(
+            `Error fetching event for invitation ${invitation.id}:`,
+            error
+          );
+          setEventDetails((prev) => ({
+            ...prev,
+            [invitation.id]: null,
+          }));
+        }
+      );
+    });
+
+    return () => {
+      unsubscribes.forEach((unsub) => unsub && unsub());
+    };
+  }, [invitations]);
 
   const handleAccept = async (invitation) => {
+    // prevent acceptance if event no longer exists
+    if (eventDetails[invitation.id] === null) {
+      alert("This event is no longer available.");
+      return;
+    }
+
     try {
       setProcessingId(invitation.id);
 
@@ -50,11 +105,11 @@ function InvitationsPanel({
   //user doesn't have any invitations
   if (!invitations || invitations.length === 0) {
     return (
-      <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-        <h3 className="text-lg font-semibold text-white mb-3">
+      <div className="bg-app-card rounded-lg p-6 border border-app-border">
+        <h3 className="text-lg font-semibold text-app-text mb-3">
           Pending Invitations
         </h3>
-        <p className="text-gray-400 text-sm">
+        <p className="text-app-muted text-sm">
           No pending invitations. When someone invites you to an event, it will
           appear here!
         </p>
@@ -65,25 +120,25 @@ function InvitationsPanel({
   return (
     <div
       className={
-        isInDropdown ? "" : "bg-gray-800 rounded-lg p-6 border border-gray-700"
+        isInDropdown ? "" : "bg-app-card rounded-lg p-6 border border-app-border"
       }
     >
       {!isInDropdown && (
-        <h3 className="text-lg font-semibold text-white mb-4">
+        <h3 className="text-lg font-semibold text-app-text mb-4">
           📬 Pending Invitations ({invitations.length})
         </h3>
       )}
 
       <div className="space-y-3">
         {invitations.map((invitation) => {
-          const event = invitation.eventData;
+          const event = eventDetails[invitation.id];
           const inviter = invitation.invitedBy;
           const isProcessing = processingId === invitation.id;
 
           return (
             <div
               key={invitation.id}
-              className={`bg-gray-700 rounded-lg p-3 border border-gray-600 hover:border-gray-500 transition-colors ${
+              className={`bg-app-bg rounded-lg p-3 border border-app-border hover:border-app-muted transition-colors ${
                 isInDropdown ? "text-sm" : ""
               }`}
             >
@@ -91,15 +146,15 @@ function InvitationsPanel({
               <div className="flex items-start justify-between mb-2">
                 <div className="flex items-center space-x-2 flex-1">
                   <div
-                    className={`w-1 ${isInDropdown ? "h-10" : "h-12"} rounded ${getColorClasses(event.color || "blue", "bg")}`}
+                    className={`w-1 ${isInDropdown ? "h-10" : "h-12"} rounded ${getColorClasses(event?.color || "blue", "bg")}`}
                   />
                   <div>
                     <h4
-                      className={`text-white font-semibold ${isInDropdown ? "text-sm" : ""}`}
+                      className={`text-app-text font-semibold ${isInDropdown ? "text-sm" : ""}`}
                     >
-                      {event.title}
+                      {event?.title || "Event details unavailable"}
                     </h4>
-                    <p className="text-xs text-gray-400 flex items-center space-x-1 mt-1">
+                    <p className="text-xs text-app-muted flex items-center space-x-1 mt-1">
                       <User className="w-3 h-3" />
                       <span>by {inviter.displayName || inviter.email}</span>
                     </p>
@@ -110,42 +165,44 @@ function InvitationsPanel({
               {/* event details */}
               <div className="space-y-1 mb-3 ml-3">
                 {/* Date */}
-                {event.date && (
-                  <div className="flex items-center space-x-2 text-xs text-gray-300">
-                    <Calendar className="w-3 h-3 text-gray-400" />
+                {event?.date && (
+                  <div className="flex items-center space-x-2 text-xs text-app-text">
+                    <Calendar className="w-3 h-3 text-app-muted" />
                     <span>
-                      {new Date(event.date).toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                        year: "numeric",
-                      })}
+                      {formatDate(event.date)}
                     </span>
                   </div>
                 )}
 
                 {/* time */}
-                {(event.startTime || event.endTime) && (
-                  <div className="flex items-center space-x-2 text-xs text-gray-300">
-                    <Clock className="w-3 h-3 text-gray-400" />
+                {(event?.startTime || event?.endTime) && (
+                  <div className="flex items-center space-x-2 text-xs text-app-text">
+                    <Clock className="w-3 h-3 text-app-muted" />
                     <span>
-                      {event.startTime}
-                      {event.endTime && ` - ${event.endTime}`}
+                      {event?.startTime}
+                      {event?.endTime && ` - ${event.endTime}`}
                     </span>
                   </div>
                 )}
 
                 {/* location or virtual */}
-                {event.isVirtual ? (
-                  <span className="inline-block text-xs bg-blue-600 text-white px-2 py-0.5 rounded">
+                {event?.isVirtual ? (
+                  <span className="inline-block text-xs bg-app-rose text-white px-2 py-0.5 rounded">
                     Virtual
                   </span>
                 ) : (
-                  event.location && (
-                    <div className="flex items-center space-x-2 text-xs text-gray-300">
-                      <MapPin className="w-3 h-3 text-gray-400" />
+                  event?.location && (
+                    <div className="flex items-center space-x-2 text-xs text-app-text">
+                      <MapPin className="w-3 h-3 text-app-muted" />
                       <span className="truncate">{event.location}</span>
                     </div>
                   )
+                )}
+
+                {!event && (
+                  <p className="text-xs text-app-muted">
+                    Event may have been deleted or is no longer accessible.
+                  </p>
                 )}
               </div>
 

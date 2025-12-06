@@ -9,10 +9,15 @@ const createOrUpdateUserProfile = async (userData) => {
     const userDocRef = doc(db, 'users', user.uid);
 
     // prepare profile data that will be stored/updated
+    const displayName = userData.displayName || userData.name || user.displayName || user.email?.split('@')[0];
+    const email = userData.email || user.email;
+
     const profileData = {
-      email: userData.email || user.email,
-      displayName: userData.displayName || userData.name || user.displayName || user.email?.split('@')[0],
+      email: email,
+      displayName: displayName,
       photoURL: userData.photoURL || userData.photoUrl || user.photoURL || null,
+      emailLowercase: email?.toLowerCase() || '',
+      displayNameLowercase: displayName?.toLowerCase() || '',
       updatedAt: serverTimestamp()
     };
 
@@ -118,17 +123,17 @@ const searchUsers = async(searchQuery) => {
 
     const usersRef = collection(db, 'users');
 
-    //queries for email and displayName
+    //queries for emailLowercase and displayNameLowercase (case-insensitive search)
     const emailQuery = query(
       usersRef,
-      where('email', '>=', q),
-      where('email', '<=', q + '\uf8ff')
+      where('emailLowercase', '>=', q),
+      where('emailLowercase', '<=', q + '\uf8ff')
     );
 
     const nameQuery = query(
       usersRef,
-      where('displayName', '>=', q),
-      where('displayName', '<=', q + '\uf8ff')
+      where('displayNameLowercase', '>=', q),
+      where('displayNameLowercase', '<=', q + '\uf8ff')
     );
 
     //executing both queries and wait for all to complete

@@ -1,7 +1,8 @@
 import { Calendar as CalendarIcon, MapPin, Users, Clock, Video, Trash2, Pencil, LogOut } from "lucide-react";
-import Avatar from "../Avatar";
-import GoogleMapEmbed from "../GoogleMapEmbed";
+import Avatar from "../Header/Avatar";
+import GoogleMapEmbed from "./GoogleMapEmbed";
 import { getColorClasses, formatDate } from "../../utils/Utils";
+import { parseTime } from "./CalendarUtils";
 
 function EventHoverCard({
   event,
@@ -12,6 +13,7 @@ function EventHoverCard({
   onEditEvent,
   onDeleteEvent,
   onLeaveEvent,
+  cardRef,
 }) {
 
   if (!event) return null;
@@ -20,19 +22,18 @@ function EventHoverCard({
   const hasEventStarted = () => {
     if (!event.date || !event.startTime) return false;
 
-    const today = new Date();
-    const eventDate = new Date(event.date);
+    const now = new Date();
+    const { hour, minute } = parseTime(event.startTime);
+    const eventStart = new Date(`${event.date}T00:00:00`);
+    eventStart.setHours(hour, minute, 0, 0);
 
-    // Compare dates (ignore time for now - just check if event day has passed)
-    today.setHours(0, 0, 0, 0);
-    eventDate.setHours(0, 0, 0, 0);
-
-    return today > eventDate;
+    return now >= eventStart;
   };
 
   return (
     <div
-      className="absolute z-50 rounded-lg shadow-2xl p-4 w-80 pointer-events-auto transition-opacity duration-200 ease-in-out -translate-y-1/2"
+      ref={cardRef}
+      className="fixed z-50 rounded-lg shadow-2xl p-4 w-80 max-h-[calc(100vh-24px)] overflow-y-auto pointer-events-auto transition-opacity duration-200 ease-in-out -translate-y-1/2"
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       style={{
@@ -78,11 +79,11 @@ function EventHoverCard({
 
       {(event.isSharedEvent || event.attendees?.length > 0) && (
         <div className="mb-4">
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-500/20 text-blue-300 border border-blue-500/30">
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-app-rose/20 text-app-rose border border-app-rose/30">
             Shared Event
           </span>
 
-          
+
         </div>
       )}
 
@@ -150,14 +151,18 @@ function EventHoverCard({
           <div className="space-y-2 ml-6">
             {event.attendees.map((attendee, idx) => {
               const isOwner = event.createdBy && attendee.email === event.createdBy.email;
+              const attendeeName =
+                attendee.displayName ||
+                attendee.name ||
+                (attendee.email ? attendee.email.split("@")[0] : "Guest");
 
               return (
                 <div key={idx} className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
-                    <Avatar name={attendee.name} photoURL={attendee.photoURL} size="sm" />
+                    <Avatar name={attendeeName} photoURL={attendee.photoURL} size="sm" />
                     <div className="text-sm">
                       <div className="text-white">
-                        {attendee.name}
+                        {attendeeName}
                         {isOwner && (
                           <span className="text-gray-300 font-normal"> (Owner)</span>
                         )}
