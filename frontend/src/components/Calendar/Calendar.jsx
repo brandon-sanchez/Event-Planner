@@ -1,8 +1,8 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { auth, db } from "../../config/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { getCurrentUser } from "../../utils/Utils";
-import { convertTo12HourFormat } from "./CalendarUtils";
+import { convertTo12HourFormat, expandRecurringEvents } from "./CalendarUtils";
 import CreateEventModal from "./CreateEventModal";
 import CalendarHeader from "./CalendarHeader";
 import CalendarGrid from "./CalendarGrid";
@@ -21,6 +21,10 @@ function Calendar() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [isHoverCardFading, setIsHoverCardFading] = useState(false);
   const [editingEvent, setEditingEvent] = useState(null);
+  const [pendingDeleteEventId, setPendingDeleteEventId] = useState(null);
+  const [pendingLeaveEventId, setPendingLeaveEventId] = useState(null);
+  const [isLeavingEvent, setIsLeavingEvent] = useState(false);
+  const [isDeletingEvent, setIsDeletingEvent] = useState(false);
   const hoverCardRef = useRef(null);
   const hoverTimeoutRef = useRef(null);
 
@@ -156,17 +160,20 @@ function Calendar() {
 
   // Delete function
   const handleDeleteEvent = async (eventId) => {
-      // ask user for confirmation
-      const confirmed = window.confirm("Are you sure you want to delete this event?");
-        if (!confirmed) return;
+      setPendingLeaveEventId(null);
+      setPendingDeleteEventId(eventId);
+  };
 
+  const confirmDeleteEvent = async () => {
+      if (!pendingDeleteEventId) return;
+      setIsDeletingEvent(true);
       // hold previous event in case of error
       const prev = events;
-      setEvents(curr => curr.filter(e => e.id !== eventId));
+      setEvents(curr => curr.filter(e => e.id !== pendingDeleteEventId));
 
       // try to delete
       try {
-          await deleteEvent(eventId);
+          await deleteEvent(pendingDeleteEventId);
 
       } catch (err) {
           // if error, send prompt and set back to prevvious
@@ -174,34 +181,47 @@ function Calendar() {
           setEvents(prev);
 
       }
-
-
+      setIsDeletingEvent(false);
+      setPendingDeleteEventId(null);
   };
 
   
   const handleLeaveEvent = async (eventId) => {
-    // ask user for confirmation
-    const confirmed = window.confirm("Are you sure you want to leave this event?");
-    if (!confirmed) return;
+    setPendingDeleteEventId(null);
+    setPendingLeaveEventId(eventId);
+  };
+
+  const confirmLeaveEvent = async () => {
+    if (!pendingLeaveEventId) return;
+    setIsLeavingEvent(true);
 
     // hold previous events in case of error
-    const prev = events;
-    setEvents(curr => curr.filter(e => e.id !== eventId));
+    let previousEvents = null;
+    setEvents((curr) => {
+      previousEvents = curr;
+      return curr.filter((e) => e.id !== pendingLeaveEventId);
+    });
 
     // try to leave event
     try {
-      await leaveEvent(eventId);
+      await leaveEvent(pendingLeaveEventId);
       console.log('Successfully left event');
     } catch (err) {
       // if error, show message and restore previous state
       console.error('Failed to leave event:', err);
       alert('Failed to leave event. Please try again.');
-      setEvents(prev);
+      if (previousEvents) {
+        setEvents(previousEvents);
+      }
     }
+    setIsLeavingEvent(false);
+    setPendingLeaveEventId(null);
   };
 
   const handleEditEvent = (event) => {
-    setEditingEvent(event);
+    const baseId = event?.seriesId || event?.id;
+    const baseEvent = events.find((e) => e.id === baseId) || event;
+    setEditingEvent(baseEvent);
     setShowCreateModal(true);
   };
 
@@ -241,6 +261,11 @@ function Calendar() {
     setCurrentDate(today);
   };
 
+  const expandedEvents = useMemo(
+    () => expandRecurringEvents(events, currentDate),
+    [events, currentDate]
+  );
+
   if(isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -261,7 +286,7 @@ function Calendar() {
           />
           <CalendarGrid
             currentDate={currentDate}
-            events={events}
+            events={expandedEvents}
             onEventHover={handleEventHover}
             onEventLeave={handleEventLeave}
             onDeleteEvent={handleDeleteEvent}
@@ -269,7 +294,7 @@ function Calendar() {
         </div>
 
         <UpcomingEventsList
-            events={events}
+            events={expandedEvents}
             onDeleteEvent={handleDeleteEvent}
             onLeaveEvent={handleLeaveEvent}
             onEditEvent={handleEditEvent}
@@ -287,6 +312,60 @@ function Calendar() {
         onEditEvent={handleEditEvent}
         cardRef={hoverCardRef}
       />
+
+      {pendingDeleteEventId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-app-card rounded-lg p-6 w-full max-w-sm shadow-2xl animate-slideUp">
+            <h3 className="text-lg font-semibold text-app-text mb-2">Delete this event?</h3>
+            <p className="text-app-muted mb-6">
+              Are you sure you want to delete this event? This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => !isDeletingEvent && setPendingDeleteEventId(null)}
+                className="px-4 py-2 rounded-md border border-app-border text-app-text hover:bg-app-border/30 disabled:opacity-70"
+                disabled={isDeletingEvent}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDeleteEvent}
+                className="px-4 py-2 rounded-md bg-red-600 text-white hover:bg-red-700 disabled:opacity-70"
+                disabled={isDeletingEvent}
+              >
+                {isDeletingEvent ? "Deleting..." : "Delete event"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {pendingLeaveEventId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-app-card rounded-lg p-6 w-full max-w-sm shadow-2xl animate-slideUp">
+            <h3 className="text-lg font-semibold text-app-text mb-2">Leave this event?</h3>
+            <p className="text-app-muted mb-6">
+              Are you sure you want to leave this event? You will be removed from the attendee list.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => !isLeavingEvent && setPendingLeaveEventId(null)}
+                className="px-4 py-2 rounded-md border border-app-border text-app-text hover:bg-app-border/30 disabled:opacity-70"
+                disabled={isLeavingEvent}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmLeaveEvent}
+                className="px-4 py-2 rounded-md bg-orange-500 text-white hover:bg-orange-600 disabled:opacity-70"
+                disabled={isLeavingEvent}
+              >
+                {isLeavingEvent ? "Leaving..." : "Leave event"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <CreateEventModal
         isOpen={showCreateModal}

@@ -3,11 +3,16 @@ import { getColorClasses } from "../../utils/Utils";
 import Avatar from "../Header/Avatar";
 
 function EventCard({ event, onMouseEnter, onMouseLeave }) {
+  const isCustomColor = event.color && event.color.startsWith("#");
+  const bgClass = isCustomColor ? "bg-app-rose" : getColorClasses(event.color, 'bg');
+  const bgStyle = isCustomColor ? { backgroundColor: event.color } : undefined;
+
   return (
     <div
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
-      className={`text-xs px-2 py-1 rounded cursor-pointer ${getColorClasses(event.color, 'bg')} hover:opacity-80`}
+      className={`text-xs px-2 py-1 rounded cursor-pointer ${bgClass} hover:opacity-80`}
+      style={bgStyle}
     >
       <div className="flex items-center gap-1 mb-1">
         {event.isVirtual ? (

@@ -91,27 +91,27 @@ function UserSearchDropdown({ selectedUsers, onUserSelect }) {
   return (
     <div ref={dropdownRef} className="relative">
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white" />
 
         <input
           type="text"
           value={searchQuery}
           onChange={handleInput}
           placeholder="Search by name or email..."
-          className="w-full pl-10 pr-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
+          className="w-full pl-10 pr-3 py-2 bg-app-bg border border-app-border rounded-lg text-app-text placeholder-app-muted focus:outline-none focus:border-app-rose focus:ring-2 focus:ring-app-rose/30"
         />
       </div>
 
       {isOpen && (
-        <div className="absolute z-50 w-full mt-1 bg-gray-700 border border-gray-600 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+        <div className="absolute z-50 w-full mt-1 bg-app-card border border-app-border rounded-lg shadow-lg max-h-60 overflow-y-auto">
           {isLoading && (
-            <div className="px-4 py-3 text-gray-400 text-sm text-center">
+            <div className="px-4 py-3 text-app-muted text-sm text-center">
               Searching...
             </div>
           )}
 
           {!isLoading && searchResults.length === 0 && (
-            <div className="px-4 py-3 text-gray-400 text-sm text-center">
+            <div className="px-4 py-3 text-app-muted text-sm text-center">
               No users found
             </div>
           )}
@@ -121,7 +121,7 @@ function UserSearchDropdown({ selectedUsers, onUserSelect }) {
               <button
                 key={user.id}
                 onClick={() => handleUserClick(user)}
-                className="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-600 transition-colors text-left"
+                className="w-full px-4 py-3 flex items-center gap-3 hover:bg-app-bg transition-colors text-left text-app-text"
                 type="button"
               >
                 <Avatar
@@ -131,10 +131,10 @@ function UserSearchDropdown({ selectedUsers, onUserSelect }) {
                 />
 
                 <div className="flex flex-col min-w-0 flex-1">
-                  <span className="text-white text-sm font-medium truncate">
+                  <span className="text-app-text text-sm font-medium truncate">
                     {user.displayName}
                   </span>
-                  <span className="text-gray-400 text-xs truncate">
+                  <span className="text-app-muted text-xs truncate">
                     {user.email}
                   </span>
                 </div>

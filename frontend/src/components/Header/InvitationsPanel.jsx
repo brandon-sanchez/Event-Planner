@@ -60,6 +60,9 @@ function InvitationsPanel({
     };
   }, [invitations]);
 
+  // hide invites where the referenced event no longer exists
+  const visibleInvitations = invitations.filter((inv) => eventDetails[inv.id] !== null);
+
   const handleAccept = async (invitation) => {
     // prevent acceptance if event no longer exists
     if (eventDetails[invitation.id] === null) {
@@ -103,7 +106,7 @@ function InvitationsPanel({
   };
 
   //user doesn't have any invitations
-  if (!invitations || invitations.length === 0) {
+  if (!visibleInvitations || visibleInvitations.length === 0) {
     return (
       <div className="bg-app-card rounded-lg p-6 border border-app-border">
         <h3 className="text-lg font-semibold text-app-text mb-3">
@@ -125,12 +128,12 @@ function InvitationsPanel({
     >
       {!isInDropdown && (
         <h3 className="text-lg font-semibold text-app-text mb-4">
-          📬 Pending Invitations ({invitations.length})
+          📬 Pending Invitations ({visibleInvitations.length})
         </h3>
       )}
 
       <div className="space-y-3">
-        {invitations.map((invitation) => {
+        {visibleInvitations.map((invitation) => {
           const event = eventDetails[invitation.id];
           const inviter = invitation.invitedBy;
           const isProcessing = processingId === invitation.id;

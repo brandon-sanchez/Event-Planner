@@ -59,13 +59,10 @@ const getUserEvents = async() => {
 
     const querySnapshot = await getDocs(eventsRef);
 
-    const events = [] 
-    querySnapshot.forEach((doc) => {
-      events.push({ 
-        id: doc.id, 
-        ...doc.data() 
-      });
-    });
+    const events = querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
 
     return events;
 
@@ -172,13 +169,9 @@ const updateEvent = async (eventId, eventData) => {
     const newAttendees = eventData.attendees || [];
 
     // find newly added attendees
-    const newlyAddedAttendees = [];
-    for (const newAttendee of newAttendees) {
-      const alreadyExists = oldAttendees.some(old => old.email === newAttendee.email);
-      if (!alreadyExists) {
-        newlyAddedAttendees.push(newAttendee);
-      }
-    }
+    const newlyAddedAttendees = newAttendees.filter(newAtt =>
+      !oldAttendees.some(oldAtt => oldAtt.email === newAtt.email)
+    );
 
     // send invitations to newly added attendees
     if (newlyAddedAttendees.length > 0) {
@@ -197,13 +190,12 @@ const updateEvent = async (eventId, eventData) => {
 
     // update attendeeIds array based on updated attendees list
     const creatorId = currentEventData.createdBy?.userId || userId;
-    const updatedAttendeeIds = [creatorId];
-
-    for (const attendee of newAttendees) {
-      if (attendee.userId && attendee.userId !== creatorId) {
-        updatedAttendeeIds.push(attendee.userId);
-      }
-    }
+    const updatedAttendeeIds = [
+      creatorId,
+      ...newAttendees
+      .filter(attendee => attendee.userId && attendee.userId !== creatorId)
+      .map(attendee => attendee.userId)
+    ];
 
     const updatedEventData = {
       ...eventData,
@@ -310,8 +302,34 @@ const leaveEvent = async (eventId) => {
       throw new Error('Cannot leave an event you created. Use delete instead.');
     }
 
-    // remove the event from the user's calendar
+    const creatorId = eventData.createdBy?.userId || userId;
+
+    // remove the event from the user's calendar copy
     await deleteDoc(eventDocRef);
+
+    // remove this attendee from creator's event and other attendees' copies
+    const attendeeUpdate = async (targetUserId) => {
+      const targetRef = doc(db, 'users', targetUserId, 'events', eventId);
+      const targetDoc = await getDoc(targetRef);
+      if (!targetDoc.exists()) return;
+
+      const targetData = targetDoc.data();
+      const updatedAttendees = (targetData.attendees || []).filter((a) => a.userId !== userId);
+      const updatedAttendeeIds = (targetData.attendeeIds || []).filter((id) => id !== userId);
+
+      await updateDoc(targetRef, {
+        attendees: updatedAttendees,
+        attendeeIds: updatedAttendeeIds,
+        updatedAt: serverTimestamp(),
+      });
+    };
+
+    // update creator event
+    await attendeeUpdate(creatorId);
+
+    // update other attendee copies
+    const otherIds = (eventData.attendeeIds || []).filter((id) => id && id !== userId && id !== creatorId);
+    await Promise.all(otherIds.map(attendeeUpdate));
 
     return eventId;
 
