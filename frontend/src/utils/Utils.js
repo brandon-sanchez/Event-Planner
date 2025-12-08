@@ -41,6 +41,13 @@ const getCurrentUser = (auth) => {
 };
 
 const getColorClasses = (color, type = "bg") => {
+  const isCustomHex = typeof color === "string" && color.startsWith("#");
+  if (isCustomHex) {
+    // for custom colors, return only the hex when requested
+    if (type === "bgHex") return color;
+    return "";
+  }
+
   const colorMap = {
     bg: {
       blue: "bg-blue-600",

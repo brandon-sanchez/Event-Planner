@@ -56,7 +56,7 @@ function CalendarGrid({
                   </div>
                   <div className="space-y-1">
                     {dayEvents.map((event) => (
-                      <div key={event.id} className="relative group">
+                      <div key={event.occurrenceId || event.id} className="relative group">
                         <EventCard
                           event={event}
                           onMouseEnter={(e) => onEventHover(event, e)}

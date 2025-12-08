@@ -86,4 +86,83 @@ const convertTo24hourFormat = (time12h) => {
   return `${hours.toString().padStart(2, '0')}:${minutes}`;
 };
 
-export {getEventsForDay, generateCalendarDays, formatMonth, convertTo12HourFormat, parseTime, convertTo24hourFormat};
+// recurrence helpers are kept pure to encourage functional composition
+const parseISODate = (isoDate) => {
+  const [year, month, day] = isoDate.split("-").map(Number);
+  return new Date(year, month - 1, day);
+};
+
+const formatDateToISO = (date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const isDateInRange = (date, start, end) => date >= start && date <= end;
+
+const getVisibleRange = (currentDate) => {
+  const rangeStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+  const rangeEnd = new Date(rangeStart);
+  rangeEnd.setMonth(rangeEnd.getMonth() + 3);
+  rangeEnd.setDate(rangeEnd.getDate() - 1);
+  return { rangeStart, rangeEnd };
+};
+
+// for building recurrances of a single event
+const buildOccurrences = (event, rangeStart, rangeEnd) => {
+  const recurrence = event.recurrence || {};
+  const enabled = recurrence.isRecurring;
+
+  if (!enabled) {
+    return [{ ...event, seriesId: event.seriesId || event.id }];
+  }
+
+  const startDate = parseISODate(recurrence.startDate || event.date);
+  const targetDays =
+    recurrence.daysOfWeek && recurrence.daysOfWeek.length > 0
+      ? recurrence.daysOfWeek
+      : [startDate.getDay()];
+  const maxCount = Math.max(
+    1,
+    Math.min(recurrence.occurrenceCount || recurrence.count || 1, 52)
+  );
+  const exclusions = recurrence.exclusions || [];
+  const hardEnd = recurrence.endMode === "date" && recurrence.endDate
+    ? parseISODate(recurrence.endDate)
+    : null;
+
+  const occurrences = [];
+  let currentDate = new Date(startDate);
+  const finalRangeEnd = hardEnd ? new Date(Math.min(hardEnd, rangeEnd)) : rangeEnd;
+
+  while (currentDate <= finalRangeEnd && occurrences.length < maxCount) {
+    const matchesDay = targetDays.includes(currentDate.getDay());
+    const asISO = formatDateToISO(currentDate);
+    const isExcluded = exclusions.includes(asISO);
+
+    if (matchesDay && !isExcluded) {
+      if (isDateInRange(currentDate, rangeStart, rangeEnd)) {
+        occurrences.push({
+          ...event,
+          seriesId: event.id,
+          occurrenceId: `${event.id}-${asISO}`,
+          date: asISO,
+        });
+      } else if (currentDate > rangeEnd) {
+        break;
+      }
+    }
+
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+
+  return occurrences;
+};
+
+const expandRecurringEvents = (events, currentDate) => {
+  const { rangeStart, rangeEnd } = getVisibleRange(currentDate);
+  return events.flatMap((event) => buildOccurrences(event, rangeStart, rangeEnd));
+};
+
+export {getEventsForDay, generateCalendarDays, formatMonth, convertTo12HourFormat, parseTime, convertTo24hourFormat, expandRecurringEvents};

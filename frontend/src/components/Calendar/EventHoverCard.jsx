@@ -40,7 +40,7 @@ function EventHoverCard({
         top: `${position.y}px`,
         left: `${position.x}px`,
         opacity: isFading ? 0 : 1,
-        backgroundColor: getColorClasses(event.color, 'bgHex'),
+        backgroundColor: getColorClasses(event.color, 'bgHex') || event.color || '#1f2937',
       }}
     >
       {/* title and b*/}
@@ -59,7 +59,7 @@ function EventHoverCard({
           </button>
           {event.isSharedEvent ? (
             <button
-              onClick={() => onLeaveEvent && onLeaveEvent(event.id)}
+              onClick={() => onLeaveEvent && onLeaveEvent(event.seriesId || event.id)}
               className="inline-flex items-center rounded-md p-2 text-sm bg-orange-500/80 hover:bg-orange-500 text-white"
               title="Leave Group Event"
             >
@@ -67,7 +67,7 @@ function EventHoverCard({
             </button>
           ) : (
             <button
-              onClick={() => onDeleteEvent(event.id)}
+              onClick={() => onDeleteEvent(event.seriesId || event.id)}
               className="inline-flex items-center rounded-md p-2 text-sm bg-red-500/80 hover:bg-red-500 text-white"
               title="Delete event"
             >

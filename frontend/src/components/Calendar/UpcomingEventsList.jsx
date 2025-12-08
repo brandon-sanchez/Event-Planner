@@ -43,11 +43,18 @@ function UpcomingEventsList({ events, onDeleteEvent, onEditEvent, onLeaveEvent }
             <p className="text-sm">No upcoming events</p>
           </div>
         ) : (
-          upcomingEvents.map((event) => (
+          upcomingEvents.map((event) => {
+            const isCustomColor = event.color && event.color.startsWith("#");
+            const borderClass = isCustomColor ? "border-l-4" : `border-l-4 ${getColorClasses(event.color || 'blue', "border")}`;
+            const bgStyle = isCustomColor
+              ? { backgroundColor: event.color }
+              : { backgroundColor: `${getColorClasses(event.color || 'blue', 'bgHex')}40` };
+
+            return (
             <div
-              key={event.id}
-              className={`relative rounded-lg p-4 group border-l-4 ${getColorClasses(event.color || 'blue', "border")}`}
-              style={{ backgroundColor: `${getColorClasses(event.color || 'blue', 'bgHex')}40` }}
+              key={event.occurrenceId || event.id}
+              className={`relative rounded-lg p-4 group ${borderClass}`}
+              style={bgStyle}
             >
               {/* buttons */}
               <div className="absolute top-2 right-2 flex items-center gap-1">
@@ -62,7 +69,7 @@ function UpcomingEventsList({ events, onDeleteEvent, onEditEvent, onLeaveEvent }
 
                 {event.isSharedEvent ? (
                   <button
-                    onClick={() => onLeaveEvent && onLeaveEvent(event.id)}
+                    onClick={() => onLeaveEvent && onLeaveEvent(event.seriesId || event.id)}
                     aria-label={`Leave ${event.title}`}
                     title="Leave Group Event"
                     className="rounded-md p-1.5 text-orange-400 opacity-0 transition-opacity hover:text-orange-300 hover:bg-orange-500/10 group-hover:opacity-100"
@@ -71,7 +78,7 @@ function UpcomingEventsList({ events, onDeleteEvent, onEditEvent, onLeaveEvent }
                   </button>
                 ) : (
                   <button
-                    onClick={() => onDeleteEvent(event.id)}
+                    onClick={() => onDeleteEvent(event.seriesId || event.id)}
                     aria-label={`Delete ${event.title}`}
                     title="Delete event"
                     className="rounded-md p-1.5 text-red-400 opacity-0 transition-opacity hover:text-red-300 hover:bg-red-500/10 group-hover:opacity-100"
@@ -125,7 +132,8 @@ function UpcomingEventsList({ events, onDeleteEvent, onEditEvent, onLeaveEvent }
                 )}
               </div>
             </div>
-          ))
+          );
+          })
         )}
       </div>
     </div>
