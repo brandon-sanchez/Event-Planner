@@ -1,0 +1,44 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="gradient12" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FF6B9D;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#C084FC;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#60A5FA;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Calendar frame -->
+  <rect x="40" y="50" width="120" height="108" rx="10" fill="url(#gradient12)" opacity="0.2"/>
+  <rect x="45" y="55" width="110" height="98" rx="8" fill="white" stroke="url(#gradient12)" stroke-width="3"/>
+  
+  <!-- Calendar header -->
+  <rect x="45" y="55" width="110" height="24" rx="8" fill="url(#gradient12)"/>
+  
+  <!-- Binding rings -->
+  <circle cx="65" cy="50" r="5" fill="url(#gradient12)"/>
+  <circle cx="100" cy="50" r="5" fill="url(#gradient12)"/>
+  <circle cx="135" cy="50" r="5" fill="url(#gradient12)"/>
+  
+  <!-- Calendar grid dots -->
+  <circle cx="65" cy="95" r="4" fill="url(#gradient12)" opacity="0.6"/>
+  <circle cx="83" cy="95" r="4" fill="url(#gradient12)" opacity="0.6"/>
+  <circle cx="100" cy="95" r="4" fill="url(#gradient12)" opacity="0.6"/>
+  <circle cx="117" cy="95" r="4" fill="url(#gradient12)" opacity="0.6"/>
+  <circle cx="135" cy="95" r="4" fill="url(#gradient12)" opacity="0.6"/>
+  
+  <circle cx="65" cy="113" r="4" fill="url(#gradient12)" opacity="0.6"/>
+  <circle cx="83" cy="113" r="4" fill="url(#gradient12)" opacity="0.6"/>
+  <circle cx="100" cy="113" r="4" fill="url(#gradient12)" opacity="0.6"/>
+  <circle cx="117" cy="113" r="4" fill="url(#gradient12)" opacity="0.6"/>
+  <circle cx="135" cy="113" r="4" fill="url(#gradient12)" opacity="0.6"/>
+  
+  <circle cx="65" cy="131" r="4" fill="url(#gradient12)" opacity="0.6"/>
+  <circle cx="83" cy="131" r="4" fill="url(#gradient12)" opacity="0.6"/>
+  
+  <!-- Highlighted date -->
+  <circle cx="100" cy="131" r="10" fill="url(#gradient12)"/>
+  <circle cx="100" cy="131" r="4" fill="white"/>
+  
+  <circle cx="117" cy="131" r="4" fill="url(#gradient12)" opacity="0.6"/>
+  <circle cx="135" cy="131" r="4" fill="url(#gradient12)" opacity="0.6"/>
+</svg>

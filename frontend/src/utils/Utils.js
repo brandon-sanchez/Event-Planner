@@ -1,4 +1,22 @@
 // Shared utility functions used across the app
+import { auth } from "../config/firebase";
+
+const checkAuth = () => {
+  const user = auth.currentUser;
+
+  if (!user) {
+    throw new Error("No user is currently logged in.");
+  }
+  return user;
+};
+
+const getCurrentUserId = () => {
+  return checkAuth().uid;
+};
+
+const isAuthenticated = () => {
+  return auth.currentUser != null;
+};
 
 const getInitials = (name) => {
   if (!name) return "U";
@@ -11,16 +29,25 @@ const getInitials = (name) => {
 };
 
 const getCurrentUser = (auth) => {
+
   return {
     name:
       auth.currentUser?.displayName ||
       auth.currentUser?.email?.split("@")[0] ||
       "User",
     email: auth.currentUser?.email || "user@example.com",
+    photoURL: auth.currentUser?.photoURL || null,
   };
 };
 
 const getColorClasses = (color, type = "bg") => {
+  const isCustomHex = typeof color === "string" && color.startsWith("#");
+  if (isCustomHex) {
+    // for custom colors, return only the hex when requested
+    if (type === "bgHex") return color;
+    return "";
+  }
+
   const colorMap = {
     bg: {
       blue: "bg-blue-600",
@@ -43,6 +70,13 @@ const getColorClasses = (color, type = "bg") => {
       green: "#15803d",
       red: "#991b1b",
     },
+    border: {
+      blue: "border-blue-500",
+      orange: "border-orange-500",
+      purple: "border-purple-500",
+      green: "border-green-500",
+      red: "border-red-500",
+    },
   };
 
   return colorMap[type][color] || colorMap[type].red;
@@ -54,4 +88,4 @@ const formatDate = (dateString) => {
   return `${month}/${day}/${year}`;
 };
 
-export { getInitials, getCurrentUser, getColorClasses, formatDate };
+export {  checkAuth, isAuthenticated, getCurrentUserId, getInitials, getCurrentUser, getColorClasses, formatDate };
