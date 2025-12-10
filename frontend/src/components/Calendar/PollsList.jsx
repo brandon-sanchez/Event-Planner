@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
+import { auth } from "../../config/firebase";
 import {
   getEventPolls,
   getPollVotes,
   voteOnPoll,
+  deletePoll,
 } from "../../services/pollService";
+import CreatePollModal from "./CreatePollModal";
 
 // helper to format ISO date strings to readable form
 const fmt = (iso) => {
@@ -30,6 +33,13 @@ function PollsList({ events, refresh = 0 }) {
   // map: pollKey -> Set(optionId)
   const [selectedByPoll, setSelectedByPoll] = useState({});
   const [loading, setLoading] = useState(true);
+
+  // editing state
+  const [editingPoll, setEditingPoll] = useState(null);
+  const [editingEvent, setEditingEvent] = useState(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
+  const currentUserId = auth.currentUser?.uid || null;
 
   // fetch polls and votes
   useEffect(() => {
@@ -115,6 +125,55 @@ function PollsList({ events, refresh = 0 }) {
     };
   }, [events, refresh]);
 
+  // open edit modal for a poll
+  const openEditPoll = (poll, ev) => {
+    setEditingPoll(poll);
+    setEditingEvent(ev);
+    setIsEditModalOpen(true);
+  };
+
+  const closeEditPoll = () => {
+    setIsEditModalOpen(false);
+    setEditingPoll(null);
+    setEditingEvent(null);
+  };
+
+  // after poll is updated in the modal
+  const handlePollUpdated = (updated) => {
+    if (!editingPoll) return;
+
+    setPolls((prev) =>
+      prev.map((p) =>
+        p.pollId === editingPoll.pollId && p.eventId === editingPoll.eventId
+          ? { ...p, ...updated }
+          : p
+      )
+    );
+
+    closeEditPoll();
+  };
+
+  // delete a poll and its votes
+  const handleDeletePoll = async (poll) => {
+    const confirmed = window.confirm(
+      "Delete this poll and all of its votes?"
+    );
+    if (!confirmed) return;
+
+    const success = await deletePoll(poll.ownerId, poll.eventId, poll.pollId);
+    if (!success) {
+      alert("Failed to delete poll.");
+      return;
+    }
+
+    setPolls((prev) => prev.filter((p) => p.pollId !== poll.pollId));
+    setVotesByPoll((prev) => {
+      const copy = { ...prev };
+      delete copy[`${poll.ownerId}:${poll.eventId}:${poll.pollId}`];
+      return copy;
+    });
+  };
+
   // toggle selection of a poll option in the local UI (checkbox behavior).
   const toggleSelect = (pollKey, optionId) => {
     setSelectedByPoll((prev) => {
@@ -189,24 +248,50 @@ function PollsList({ events, refresh = 0 }) {
 
             const pollKey = `${p.ownerId}:${p.eventId}:${p.pollId}`;
 
+            const canManage  = !!currentUserId;
+
+
             return (
               <div
                 key={pollKey}
                 className="rounded-md border border-gray-700 p-3"
               >
-                <div className="font-medium">
-                  {ev?.title || p.title || "Event"}
-                </div>
-                <div className="text-xs text-gray-400 mb-2">
-                  {ev?.date} • {ev?.startTime}–{ev?.endTime}{" "}
-                  {ev?.isVirtual
-                    ? "(Virtual)"
-                    : ev?.location
-                    ? `• ${ev.location}`
-                    : ""}
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <div className="font-medium">
+                      {ev?.title || p.title || "Event"}
+                    </div>
+                    <div className="text-xs text-gray-400 mb-2">
+                      {ev?.date} • {ev?.startTime}–{ev?.endTime}{" "}
+                      {ev?.isVirtual
+                        ? "(Virtual)"
+                        : ev?.location
+                        ? `• ${ev.location}`
+                        : ""}
+                    </div>
+                  </div>
+
+                  {canManage && (
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => openEditPoll(p, ev)}
+                        className="text-xs px-2 py-1 rounded-md bg-gray-700 text-white hover:bg-gray-600"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeletePoll(p)}
+                        className="text-xs px-2 py-1 rounded-md bg-red-600 text-white hover:bg-red-700"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  )}
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-2 mt-1">
                   {(p.options || []).map((opt) => {
                     const voters = votersFor(pollKey, opt.id);
                     const selected = (
@@ -250,6 +335,17 @@ function PollsList({ events, refresh = 0 }) {
             );
           })}
         </div>
+      )}
+
+      {isEditModalOpen && editingPoll && editingEvent && (
+        <CreatePollModal
+          isOpen={isEditModalOpen}
+          onClose={closeEditPoll}
+          eventId={editingEvent.id}
+          event={editingEvent}
+          poll={editingPoll}
+          onUpdated={handlePollUpdated}
+        />
       )}
     </div>
   );

@@ -9,6 +9,7 @@ import {
   serverTimestamp,
   query,
   orderBy,
+  deleteDoc,
 } from "firebase/firestore";
 
 // Reference to event owner's polls for a given event
@@ -133,5 +134,74 @@ const getPollVotes = async (ownerId, eventKey, pollId) => {
   const snap = await getDocs(votesCol);
   return snap.docs.map((d) => ({ voterId: d.id, ...d.data() }));
 };
+// Update a poll's fields (title, options, status, etc.)
+const updatePoll = async (ownerId, eventKey, pollId, updates) => {
+  try {
+    checkAuth(); // just to be sure user is logged in
 
-export { createPoll, getEventPolls, voteOnPoll, getPollVotes };
+    const pollRef = doc(
+      db,
+      "users",
+      ownerId,
+      "events",
+      eventKey,
+      "polls",
+      pollId
+    );
+
+    await setDoc(
+      pollRef,
+      {
+        ...updates,
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
+
+    return { id: pollId, ...updates };
+  } catch (e) {
+    console.error("Error updating poll:", e);
+    return null;
+  }
+};
+
+// Delete a poll and all of its votes
+const deletePoll = async (ownerId, eventKey, pollId) => {
+  try {
+    checkAuth();
+
+    // delete votes subcollection
+    const votesCol = collection(
+      db,
+      "users",
+      ownerId,
+      "events",
+      eventKey,
+      "polls",
+      pollId,
+      "votes"
+    );
+    const votesSnap = await getDocs(votesCol);
+    const deletePromises = votesSnap.docs.map((d) => deleteDoc(d.ref));
+    await Promise.all(deletePromises);
+
+    // delete the poll document itself
+    const pollRef = doc(
+      db,
+      "users",
+      ownerId,
+      "events",
+      eventKey,
+      "polls",
+      pollId
+    );
+    await deleteDoc(pollRef);
+
+    return true;
+  } catch (e) {
+    console.error("Error deleting poll:", e);
+    return false;
+  }
+};
+
+export { createPoll, getEventPolls, voteOnPoll, getPollVotes, updatePoll, deletePoll, };
