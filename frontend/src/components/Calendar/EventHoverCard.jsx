@@ -13,9 +13,9 @@ function EventHoverCard({
   onEditEvent,
   onDeleteEvent,
   onLeaveEvent,
+  onCreatePoll, // added for poll feature
   cardRef,
 }) {
-
   if (!event) return null;
 
   // Check if event has started to determine if we should show pending status
@@ -40,10 +40,10 @@ function EventHoverCard({
         top: `${position.y}px`,
         left: `${position.x}px`,
         opacity: isFading ? 0 : 1,
-        backgroundColor: getColorClasses(event.color, 'bgHex') || event.color || '#1f2937',
+        backgroundColor: getColorClasses(event.color, "bgHex") || event.color || "#1f2937",
       }}
     >
-      {/* title and b*/}
+      {/* title and buttons */}
       <div className="flex items-start justify-between gap-2 mb-2">
         <h3 className="text-white font-semibold text-lg flex-1 break-words">
           {event.title}
@@ -57,6 +57,18 @@ function EventHoverCard({
           >
             <Pencil className="w-4 h-4" />
           </button>
+
+          {/* added: create poll button */}
+          {onCreatePoll && (
+            <button
+              onClick={() => onCreatePoll(event)}
+              className="inline-flex items-center rounded-md px-2 py-1 text-sm bg-blue-600/90 hover:bg-blue-600 text-white"
+              title="Create poll"
+            >
+              Create Poll
+            </button>
+          )}
+
           {event.isSharedEvent ? (
             <button
               onClick={() => onLeaveEvent && onLeaveEvent(event.seriesId || event.id)}
@@ -82,8 +94,6 @@ function EventHoverCard({
           <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-app-rose/20 text-app-rose border border-app-rose/30">
             Shared Event
           </span>
-
-
         </div>
       )}
 
@@ -124,7 +134,7 @@ function EventHoverCard({
         {!event.isVirtual && event.location && (
           <>
             <div className="text-gray-100 text-sm ml-6 mb-3">{event.location}</div>
-            <GoogleMapEmbed address={event.location} className="h-full w-full"/>
+            <GoogleMapEmbed address={event.location} className="h-full w-full" />
           </>
         )}
       </div>
@@ -174,7 +184,7 @@ function EventHoverCard({
                   </div>
 
                   {/* if event hasn't started show pending invitees */}
-                  {!hasEventStarted() && attendee.status === 'pending' && (
+                  {!hasEventStarted() && attendee.status === "pending" && (
                     <span className="text-xs bg-yellow-500/20 text-yellow-300 px-2 py-1 rounded-full border border-yellow-500/30">
                       Pending
                     </span>

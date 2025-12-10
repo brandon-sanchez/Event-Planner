@@ -4,14 +4,14 @@ import { createPoll } from "../../services/pollService";
 import { convertTo24hourFormat } from "./CalendarUtils";
 
 /**
-    Modal component for creating a poll
+  Modal component for creating a poll
  */
 function CreatePollModal({ isOpen, onClose, eventId, event, onCreated }) {
   // State to hold list of date/time options
   const [options, setOptions] = useState([
     { id: crypto.randomUUID(), date: "", start: "", end: "" },
   ]);
-   // Whether the form is currently submitting
+  // Whether the form is currently submitting
   const [submitting, setSubmitting] = useState(false);
   // Validation state for missing or incomplete options
   const [error, setError] = useState({ options: false });
@@ -50,6 +50,7 @@ function CreatePollModal({ isOpen, onClose, eventId, event, onCreated }) {
     setError({ options: false });
     onClose();
   };
+
   // add new block
   const addOption = () => {
     setOptions((prev) => [
@@ -57,21 +58,52 @@ function CreatePollModal({ isOpen, onClose, eventId, event, onCreated }) {
       { id: crypto.randomUUID(), date: "", start: "", end: "" },
     ]);
   };
+
   // remove an option
   const removeOption = (id) => {
     setOptions((prev) => prev.filter((o) => o.id !== id));
   };
+
   // update a specific field (start, end, or date)
   const updateOption = (id, field, value) => {
-    setOptions((prev) => prev.map((o) => (o.id === id ? { ...o, [field]: value } : o)));
+    setOptions((prev) =>
+      prev.map((o) => (o.id === id ? { ...o, [field]: value } : o))
+    );
     if (error.options) setError((e) => ({ ...e, options: false }));
   };
+
   // called when user clicks "Create Poll"
   const handleCreatePoll = async () => {
+    // derive shared poll location: ownerId + eventKey
+    const ownerId =
+      event?.createdBy?.userId ||
+      event?.createdBy?.uid ||
+      event?.ownerId ||
+      event?.userId ||
+      null;
+
+    const eventKey = event?.seriesId || event?.id || eventId || null;
+
+    if (!ownerId || !eventKey) {
+      console.error(
+        "[CreatePollModal] Missing ownerId or eventKey for poll",
+        { ownerId, eventKey, event, eventId }
+      );
+      alert("Unable to create poll: missing event owner or event identifier.");
+      return;
+    }
+
     const original =
       originalStartISO && originalEndISO
-        ? [{ id: "original", startISO: originalStartISO, endISO: originalEndISO }]
+        ? [
+            {
+              id: "original",
+              startISO: originalStartISO,
+              endISO: originalEndISO,
+            },
+          ]
         : [];
+
     // Format valid user added options
     const extras = options
       .filter((o) => o.date && o.start && o.end)
@@ -81,8 +113,10 @@ function CreatePollModal({ isOpen, onClose, eventId, event, onCreated }) {
         return startISO && endISO ? { id: o.id, startISO, endISO } : null;
       })
       .filter(Boolean);
+
     // Merge original + new options
     const allOptions = [...original, ...extras];
+
     // Validate that at least one valid option
     const newErrors = { options: allOptions.length === 0 };
     setError(newErrors);
@@ -91,26 +125,32 @@ function CreatePollModal({ isOpen, onClose, eventId, event, onCreated }) {
 
     setSubmitting(true);
     try {
-        // Create poll document in Firestore
-      const created = await createPoll(eventId, {
+      // Create poll document in Firestore at shared location
+      const created = await createPoll(ownerId, eventKey, {
         title: event?.title ? `${event.title} — Time Poll` : "Time Poll",
         options: allOptions,
         multiSelect: true,
       });
+
       if (!created) {
-          throw new Error("createdPoll returned null/undefined");
+        throw new Error("createdPoll returned null/undefined");
       }
-      console.log("[CreatePollModal] poll created for eventId=", eventId);
+
+      console.log(
+        "[CreatePollModal] poll created for ownerId=",
+        ownerId,
+        "eventKey=",
+        eventKey
+      );
       onCreated?.();
       console.log("[CreatePollModal] onCreated() fired");
       handleClose();
-     } catch (e) {
+    } catch (e) {
       console.error("Failed to create poll:", e);
       alert("Failed to create poll.");
       setSubmitting(false);
     }
   };
-
 
   if (!isOpen) return null;
 
@@ -156,7 +196,9 @@ function CreatePollModal({ isOpen, onClose, eventId, event, onCreated }) {
         </div>
 
         <div className="space-y-3">
-          <div className="text-sm font-medium text-gray-300">Additional Date/Times</div>
+          <div className="text-sm font-medium text-gray-300">
+            Additional Date/Times
+          </div>
 
           {options.map((o) => (
             <div key={o.id} className="grid grid-cols-3 gap-2">
@@ -203,13 +245,17 @@ function CreatePollModal({ isOpen, onClose, eventId, event, onCreated }) {
 
           {error.options && (
             <p className="text-sm text-red-400">
-              Add at least one complete additional option or ensure the original time is valid.
+              Add at least one complete additional option or ensure the original
+              time is valid.
             </p>
           )}
         </div>
 
         <div className="flex justify-end space-x-3 pt-4">
-          <button onClick={handleClose} className="px-4 py-2 text-gray-300 hover:text-white">
+          <button
+            onClick={handleClose}
+            className="px-4 py-2 text-gray-300 hover:text-white"
+          >
             Cancel
           </button>
           <button

@@ -1,9 +1,19 @@
 import { db, auth } from "../config/firebase";
-import { collection, addDoc, getDocs, setDoc, doc, getDoc, serverTimestamp, query, orderBy, } from "firebase/firestore";
+import {
+  collection,
+  addDoc,
+  getDocs,
+  setDoc,
+  doc,
+  getDoc,
+  serverTimestamp,
+  query,
+  orderBy,
+} from "firebase/firestore";
 
-// Reference to current user's polls for a given event
-const getUserEventPollsCollection = (userId, eventId) => {
-  return collection(db, "users", userId, "events", eventId, "polls");
+// Reference to event owner's polls for a given event
+const getEventPollsCollection = (ownerUserId, eventKey) => {
+  return collection(db, "users", ownerUserId, "events", eventKey, "polls");
 };
 
 const checkAuth = () => {
@@ -14,106 +24,114 @@ const checkAuth = () => {
   return user.uid;
 };
 
-// Create poll: users/{uid}/events/{eventId}/polls/{pollId}
-const createPoll = async (eventId, pollData) => {
+// Create poll: users/{ownerId}/events/{eventKey}/polls/{pollId}
+const createPoll = async (ownerId, eventKey, pollData) => {
   try {
-    const userId = checkAuth();
+    const currentUserId = checkAuth();
 
-    // optionally ensure parent event exists (nice-to-have)
-    const evRef = doc(db, "users", userId, "events", eventId);
+    const evRef = doc(db, "users", ownerId, "events", eventKey);
     const evSnap = await getDoc(evRef);
-    if (!evSnap.exists()) {
-      console.warn("[createPoll] Event does not exist:", eventId);
-      return null;
-    }
-    // formatting
-    const options = Array.isArray(pollData.options)
-      ? pollData.options
-          .filter(o => o && o.startISO && o.endISO)
-          .map(o => ({
-            id: o.id || crypto.randomUUID(),
-            startISO: String(o.startISO),
-            endISO: String(o.endISO),
-          }))
-      : [];
+    if (!evSnap.exists()) return null;
+
+    const pollsCol = getEventPollsCollection(ownerId, eventKey);
 
     const newPoll = {
-      title: pollData.title || "Time Poll",
+      title: pollData.title,
+      options: pollData.options,
       status: "open",
-      options,
       multiSelect: !!pollData.multiSelect,
+      createdBy: currentUserId,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     };
 
-    const pollsCol = getUserEventPollsCollection(userId, eventId);
     const docRef = await addDoc(pollsCol, newPoll);
     return { id: docRef.id, ...newPoll };
-  } catch (error) {
-    console.log("Error creating poll:", error);
+  } catch (e) {
+    console.error("Error creating poll:", e);
     return null;
   }
 };
 
 // Read all polls for an event (newest first)
-const getEventPolls = async (eventId) => {
-  try {
-    const userId = checkAuth();
-    const q = query(getUserEventPollsCollection(userId, eventId), orderBy("createdAt", "desc"));
-    const snap = await getDocs(q);
-    const polls = [];
-    snap.forEach(d => polls.push({ id: d.id, ...d.data() }));
-    return polls;
-  } catch (error) {
-    console.log("Error fetching polls:", error);
-    return [];
-  }
+const getEventPolls = async (ownerId, eventKey) => {
+  const q = query(
+    getEventPollsCollection(ownerId, eventKey),
+    orderBy("createdAt", "desc")
+  );
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 };
 
-// Vote: users/{uid}/events/{eventId}/polls/{pollId}/votes/{voterId}
-const voteOnPoll = async (eventId, pollId, selectedOptionIds) => {
+// Vote: users/{ownerId}/events/{eventKey}/polls/{pollId}/votes/{voterId}
+const voteOnPoll = async (ownerId, eventKey, pollId, selectedOptionIds) => {
   try {
-    const userId = checkAuth();
+    const currentUserId = checkAuth();
+    const user = auth.currentUser;
+
     const voteRef = doc(
-      db, "users", userId, "events", eventId, "polls", pollId, "votes", userId
+      db,
+      "users",
+      ownerId,
+      "events",
+      eventKey,
+      "polls",
+      pollId,
+      "votes",
+      currentUserId
     );
 
     await setDoc(
       voteRef,
       {
-        selectedOptionIds: Array.isArray(selectedOptionIds) ? selectedOptionIds : [],
+        voterId: currentUserId,
+        voterName: user?.displayName || null,
+        voterEmail: user?.email || null,
+        selectedOptionIds: Array.isArray(selectedOptionIds)
+          ? selectedOptionIds
+          : [],
         updatedAt: serverTimestamp(),
       },
       { merge: true }
     );
 
     // touch poll.updatedAt (optional)
-    const pollRef = doc(db, "users", userId, "events", eventId, "polls", pollId);
-    await setDoc(pollRef, { updatedAt: serverTimestamp() }, { merge: true });
+    const pollRef = doc(
+      db,
+      "users",
+      ownerId,
+      "events",
+      eventKey,
+      "polls",
+      pollId
+    );
+    await setDoc(
+      pollRef,
+      { updatedAt: serverTimestamp() },
+      { merge: true }
+    );
 
     return { pollId, selectedOptionIds };
   } catch (error) {
-    console.log("Error submitting vote:", error);
+    console.error("Error submitting vote:", error);
     return null;
   }
 };
 
 // Read votes for a poll → [{ voterId, selectedOptionIds, updatedAt }]
-const getPollVotes = async (eventId, pollId) => {
-  try {
-    const userId = checkAuth();
-    const votesCol = collection(
-      db, "users", userId, "events", eventId, "polls", pollId, "votes"
-    );
-    const snap = await getDocs(votesCol);
-    const votes = [];
-    snap.forEach(d => votes.push({ voterId: d.id, ...d.data() }));
-    return votes;
-  } catch (error) {
-    console.log("Error fetching poll votes:", error);
-    return [];
-  }
+const getPollVotes = async (ownerId, eventKey, pollId) => {
+  const votesCol = collection(
+    db,
+    "users",
+    ownerId,
+    "events",
+    eventKey,
+    "polls",
+    pollId,
+    "votes"
+  );
+  const snap = await getDocs(votesCol);
+  return snap.docs.map((d) => ({ voterId: d.id, ...d.data() }));
 };
 
 export { createPoll, getEventPolls, voteOnPoll, getPollVotes };
-

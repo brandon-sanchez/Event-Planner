@@ -11,6 +11,10 @@ import EventHoverCard from "./EventHoverCard";
 import { createEvent, deleteEvent, updateEvent, leaveEvent } from "../../services/eventService";
 import { collection, onSnapshot } from "firebase/firestore";
 
+// Added for poll feature
+import CreatePollModal from "./CreatePollModal";
+import PollsList from "./PollsList";
+
 function Calendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [events, setEvents] = useState([]);
@@ -29,6 +33,10 @@ function Calendar() {
   const hoverTimeoutRef = useRef(null);
 
   const currentUser = getCurrentUser(auth);
+
+  // Added state for poll logic
+  const [pollRefresh, setPollRefresh] = useState(0);
+  const [pollForEvent, setPollForEvent] = useState(null);
 
   useEffect(() => {
     let eventsUnsub = null;
@@ -149,43 +157,37 @@ function Calendar() {
       setEvents([...events, createdEvent]);
       setShowCreateModal(false);
 
-      console.log('Event created successfully:');
       return createdEvent;
     } catch (error) {
-      console.log('Error creating event:', error);
+      console.log("Error creating event:", error);
       throw error;
     }
-    
   };
 
-  // Delete function
+  // Delete modal logic (from main)
   const handleDeleteEvent = async (eventId) => {
-      setPendingLeaveEventId(null);
-      setPendingDeleteEventId(eventId);
+    setPendingLeaveEventId(null);
+    setPendingDeleteEventId(eventId);
   };
 
   const confirmDeleteEvent = async () => {
-      if (!pendingDeleteEventId) return;
-      setIsDeletingEvent(true);
-      // hold previous event in case of error
-      const prev = events;
-      setEvents(curr => curr.filter(e => e.id !== pendingDeleteEventId));
+    if (!pendingDeleteEventId) return;
+    setIsDeletingEvent(true);
 
-      // try to delete
-      try {
-          await deleteEvent(pendingDeleteEventId);
+    const prev = events;
+    setEvents(curr => curr.filter(e => e.id !== pendingDeleteEventId));
 
-      } catch (err) {
-          // if error, send prompt and set back to prevvious
-          console.error('Failed to delete event:', err);
-          setEvents(prev);
+    try {
+      await deleteEvent(pendingDeleteEventId);
+    } catch (err) {
+      console.error("Failed to delete event:", err);
+      setEvents(prev);
+    }
 
-      }
-      setIsDeletingEvent(false);
-      setPendingDeleteEventId(null);
+    setIsDeletingEvent(false);
+    setPendingDeleteEventId(null);
   };
 
-  
   const handleLeaveEvent = async (eventId) => {
     setPendingDeleteEventId(null);
     setPendingLeaveEventId(eventId);
@@ -195,25 +197,22 @@ function Calendar() {
     if (!pendingLeaveEventId) return;
     setIsLeavingEvent(true);
 
-    // hold previous events in case of error
     let previousEvents = null;
     setEvents((curr) => {
       previousEvents = curr;
       return curr.filter((e) => e.id !== pendingLeaveEventId);
     });
 
-    // try to leave event
     try {
       await leaveEvent(pendingLeaveEventId);
-      console.log('Successfully left event');
     } catch (err) {
-      // if error, show message and restore previous state
-      console.error('Failed to leave event:', err);
-      alert('Failed to leave event. Please try again.');
+      console.error("Failed to leave event:", err);
+      alert("Failed to leave event.");
       if (previousEvents) {
         setEvents(previousEvents);
       }
     }
+
     setIsLeavingEvent(false);
     setPendingLeaveEventId(null);
   };
@@ -243,10 +242,13 @@ function Calendar() {
       setShowCreateModal(false);
       setEditingEvent(null);
     } catch (error) {
-      console.log('Error updating event:', error);
+      console.log("Error updating event:", error);
     }
   };
 
+  // Added: functions for poll creation
+  const openCreatePoll = (event) => setPollForEvent(event);
+  const closeCreatePoll = () => setPollForEvent(null);
 
   const navigateMonth = (direction) => {
     setCurrentDate((prev) => {
@@ -257,8 +259,7 @@ function Calendar() {
   };
 
   const goToToday = () => {
-    const today = new Date();
-    setCurrentDate(today);
+    setCurrentDate(new Date());
   };
 
   const expandedEvents = useMemo(
@@ -266,7 +267,7 @@ function Calendar() {
     [events, currentDate]
   );
 
-  if(isLoading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="text-white text-xl">Loading events...</div>
@@ -293,12 +294,16 @@ function Calendar() {
           />
         </div>
 
-        <UpcomingEventsList
+        {/* Added PollsList in right-hand column */}
+        <div className="flex flex-col gap-4">
+          <UpcomingEventsList
             events={expandedEvents}
             onDeleteEvent={handleDeleteEvent}
             onLeaveEvent={handleLeaveEvent}
             onEditEvent={handleEditEvent}
-        />
+          />
+          <PollsList events={expandedEvents} refresh={pollRefresh} />
+        </div>
       </div>
 
       <EventHoverCard
@@ -310,8 +315,11 @@ function Calendar() {
         onDeleteEvent={handleDeleteEvent}
         onLeaveEvent={handleLeaveEvent}
         onEditEvent={handleEditEvent}
+        onCreatePoll={openCreatePoll}   // Added
         cardRef={hoverCardRef}
       />
+
+      {/* Modal logic below */}
 
       {pendingDeleteEventId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fadeIn">
@@ -376,6 +384,17 @@ function Calendar() {
         onCreateEvent={handleCreateEvent}
         editEvent={editingEvent}
         onUpdateEvent={handleUpdateEvent}
+      />
+
+      {/* Added poll modal */}
+      <CreatePollModal
+        isOpen={!!pollForEvent}
+        onClose={closeCreatePoll}
+        eventId={pollForEvent?.id}
+        event={pollForEvent}
+        onCreated={() => {
+          setPollRefresh((n) => n + 1);
+        }}
       />
     </div>
   );
