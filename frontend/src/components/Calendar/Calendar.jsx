@@ -3,7 +3,7 @@ import { auth, db } from "../../config/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { getCurrentUser } from "../../utils/Utils";
 import { convertTo12HourFormat, expandRecurringEvents } from "./CalendarUtils";
-import CreateEventModal from "./CreateEventModal";
+import EventModal from "./EventModal/EventModal";
 import CalendarHeader from "./CalendarHeader";
 import CalendarGrid from "./CalendarGrid";
 import UpcomingEventsList from "./UpcomingEventsList";
@@ -30,6 +30,7 @@ function Calendar() {
 
   const currentUser = getCurrentUser(auth);
 
+  // listen for auth changes and fetch user's events
   useEffect(() => {
     let eventsUnsub = null;
 
@@ -50,14 +51,10 @@ function Calendar() {
       eventsUnsub = onSnapshot(
         eventsRef,
         (querySnapshot) => {
-          const fetchedEvents = [];
-
-          querySnapshot.forEach((doc) => {
-            fetchedEvents.push({
-              id: doc.id,
-              ...doc.data(),
-            });
-          });
+          const fetchedEvents = querySnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+          }));
 
           setEvents(fetchedEvents);
           setIsLoading(false);
@@ -75,6 +72,7 @@ function Calendar() {
     };
   }, []);
 
+  // keeps hover card from going off-screen
   const clampHoverY = (desiredCenterY, cardHeight, padding) => {
     const minCenterY = padding + cardHeight / 2;
     const maxCenterY = Math.max(minCenterY, window.innerHeight - padding - cardHeight / 2);
@@ -116,6 +114,7 @@ function Calendar() {
     setIsHoverCardFading(false);
   };
 
+  // recalculate hover card position once we know its actual height
   useEffect(() => {
     if (!hoveredEvent || !hoverAnchor || !hoverCardRef.current) return;
 
@@ -158,7 +157,6 @@ function Calendar() {
     
   };
 
-  // Delete function
   const handleDeleteEvent = async (eventId) => {
       setPendingLeaveEventId(null);
       setPendingDeleteEventId(eventId);
@@ -167,19 +165,14 @@ function Calendar() {
   const confirmDeleteEvent = async () => {
       if (!pendingDeleteEventId) return;
       setIsDeletingEvent(true);
-      // hold previous event in case of error
       const prev = events;
       setEvents(curr => curr.filter(e => e.id !== pendingDeleteEventId));
 
-      // try to delete
       try {
           await deleteEvent(pendingDeleteEventId);
-
       } catch (err) {
-          // if error, send prompt and set back to prevvious
           console.error('Failed to delete event:', err);
           setEvents(prev);
-
       }
       setIsDeletingEvent(false);
       setPendingDeleteEventId(null);
@@ -195,19 +188,15 @@ function Calendar() {
     if (!pendingLeaveEventId) return;
     setIsLeavingEvent(true);
 
-    // hold previous events in case of error
     let previousEvents = null;
     setEvents((curr) => {
       previousEvents = curr;
       return curr.filter((e) => e.id !== pendingLeaveEventId);
     });
 
-    // try to leave event
     try {
       await leaveEvent(pendingLeaveEventId);
-      console.log('Successfully left event');
     } catch (err) {
-      // if error, show message and restore previous state
       console.error('Failed to leave event:', err);
       alert('Failed to leave event. Please try again.');
       if (previousEvents) {
@@ -219,6 +208,7 @@ function Calendar() {
   };
 
   const handleEditEvent = (event) => {
+    // for recurring events need to find the base event not the occurrence
     const baseId = event?.seriesId || event?.id;
     const baseEvent = events.find((e) => e.id === baseId) || event;
     setEditingEvent(baseEvent);
@@ -261,6 +251,7 @@ function Calendar() {
     setCurrentDate(today);
   };
 
+  // turns recurring events into individual occurrences for the current month
   const expandedEvents = useMemo(
     () => expandRecurringEvents(events, currentDate),
     [events, currentDate]
@@ -367,7 +358,7 @@ function Calendar() {
         </div>
       )}
 
-      <CreateEventModal
+      <EventModal
         isOpen={showCreateModal}
         onClose={() => {
           setShowCreateModal(false);

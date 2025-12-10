@@ -16,7 +16,7 @@ function CalendarGrid({
 
   return (
     <div className="bg-app-card rounded-lg overflow-hidden overflow-x-auto">
-      <div className="grid grid-cols-7 bg-app-card min-w-[280px]">
+      <div className="grid grid-cols-7 bg-app-border min-w-[280px]">
         {weekDays.map((day) => (
           <div
             key={day}

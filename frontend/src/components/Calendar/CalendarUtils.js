@@ -38,7 +38,18 @@ const generateCalendarDays = (currentDate) => {
 const getEventsForDay = (currentDate, events, day) => {
   if (!day) return [];
   const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-  return events.filter((event) => event.date === dateStr);
+  return events
+    .filter((event) => event.date === dateStr)
+    .sort((a, b) => {
+      const aTime = parseTime(a.startTime);
+      const bTime = parseTime(b.startTime);
+
+      const aMinutes = aTime.hour * 60 + aTime.minute;
+      const bMinutes = bTime.hour * 60 + bTime.minute;
+
+      if (aMinutes !== bMinutes) return aMinutes - bMinutes;
+      return (a.title || "").localeCompare(b.title || "");
+    });
 };
 
 //24-hour time to 12-hour AM/PM

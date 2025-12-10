@@ -12,9 +12,7 @@ function Dashboard() {
   useEffect(() => {
     try {
       const userId = getCurrentUserId();
-
       const invitationRef = collection(db, 'users', userId, 'invitations');
-
       const q = query(invitationRef, where('status', '==', 'pending'));
 
       const unsubscribe = onSnapshot(q, (querySnapshot) => {
