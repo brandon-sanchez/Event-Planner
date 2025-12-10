@@ -21,6 +21,7 @@
     "clsx": "^2.1.1",
     "firebase": "^12.4.0",
     "lucide-react": "^0.546.0",
+    "openai": "^4.67.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-google-autocomplete": "^2.7.5",

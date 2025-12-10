@@ -1,5 +1,5 @@
 import { checkAuth, getCurrentUserId } from "../utils/Utils"
-import { collection, addDoc, updateDoc, getDoc, doc, getDocs, query, where, deleteDoc, serverTimestamp, setDoc } from "firebase/firestore";
+import { collection, addDoc, updateDoc, getDoc, doc, deleteDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { db } from "../config/firebase";
 import { findUserByEmail } from "./userService";
 
@@ -96,31 +96,6 @@ const sendMultipleInvitations = async (recipientEmails, eventData) => {
   }
 };
 
-const getPendingInvitations = async () => {
-  try {
-    const userId = getCurrentUserId();
-    const invitationsRef = collection(db, 'users', userId, 'invitations');
-    const q = query(invitationsRef, where('status', '==', 'pending'));
-
-    const querySnapshot = await getDocs(q);
-
-    const invitations = [];
-    querySnapshot.forEach((doc) => {
-      invitations.push({
-        id: doc.id,
-        ...doc.data()
-      });
-    });
-
-    console.log(`Fetched ${invitations.length} pending invitations.`);
-
-    return invitations;
-  } catch (error) {
-    console.log('Error fetching pending invitations:', error);
-    throw error;
-  }
-};
-
 // accepts an invitation and adds the event to user's calendar
 // uses the same event ID as original so all copies stay synced
 const acceptInvitation = async (invitationId) => {
@@ -128,8 +103,8 @@ const acceptInvitation = async (invitationId) => {
     const userId = getCurrentUserId();
     const currentUser = checkAuth();
 
-    const invitiationRef = doc(db, 'users', userId, 'invitations', invitationId);
-    const invitationDoc = await getDoc(invitiationRef);
+    const invitationRef = doc(db, 'users', userId, 'invitations', invitationId);
+    const invitationDoc = await getDoc(invitationRef);
 
     if (!invitationDoc.exists()) {
       throw new Error('Invitation not found.');
@@ -228,7 +203,7 @@ const acceptInvitation = async (invitationId) => {
       }
     }
 
-    await deleteDoc(invitiationRef);
+    await deleteDoc(invitationRef);
 
     console.log('Invitation accepted and attendeeIds synced to all copies');
 
@@ -324,41 +299,4 @@ const declineInvitation = async (invitationId) => {
   }
 };
 
-const deleteInvitation = async (invitationId) => {
-  try {
-    const userId = getCurrentUserId();
-    const invitationRef = doc(db, 'users', userId, 'invitations', invitationId);
-    await deleteDoc(invitationRef);
-
-    console.log('Invitation deleted:', invitationId);
-
-  } catch (error) {
-    console.log('Error deleting invitation:', error);
-    throw error;
-  }
-};
-
-const getAllInvitations = async () => {
-  try {
-    const userId = getCurrentUserId();
-
-    const invitationsRef = collection(db, 'users', userId, 'invitations');
-    const querySnapshot = await getDocs(invitationsRef);
-
-    const invitations = [];
-    querySnapshot.forEach((doc) => {
-      invitations.push({
-        id: doc.id,
-        ...doc.data()
-      });
-    });
-
-    return invitations;
-  } catch (error) {
-    console.log('Error fetching all invitations:', error);
-    throw error;
-  }
-};
-
-
-export { sendInvitation, sendMultipleInvitations, getPendingInvitations, acceptInvitation, declineInvitation, deleteInvitation, getAllInvitations };
+export { sendInvitation, sendMultipleInvitations, acceptInvitation, declineInvitation };

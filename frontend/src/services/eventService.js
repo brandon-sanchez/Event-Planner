@@ -1,5 +1,5 @@
 import { db } from '../config/firebase';
-import { collection, addDoc, getDocs, getDoc, serverTimestamp, deleteDoc, doc, updateDoc, query, where, writeBatch } from 'firebase/firestore';
+import { collection, addDoc, getDoc, getDocs, serverTimestamp, deleteDoc, doc, updateDoc, query, where, writeBatch } from 'firebase/firestore';
 import { getCurrentUserId, checkAuth } from '../utils/Utils';
 
 //Event CRUD operations for firebase
@@ -39,25 +39,6 @@ const createEvent = async (eventData) => {
 
   } catch (error) {
     console.error('Error creating event:', error);
-  }
-}
-
-// gets all events for the current user
-const getUserEvents = async() => {
-  try {
-    const userId = getCurrentUserId();
-    const eventsRef = getUserEventsCollection(userId);
-    const querySnapshot = await getDocs(eventsRef);
-
-    const events = querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-
-    return events;
-
-  } catch (error) {
-    console.error('Error fetching user events:', error);
   }
 }
 
@@ -311,4 +292,4 @@ const leaveEvent = async (eventId) => {
   }
 };
 
-export { createEvent, getUserEvents, deleteEvent, updateEvent, leaveEvent };
+export { createEvent, deleteEvent, updateEvent, leaveEvent };

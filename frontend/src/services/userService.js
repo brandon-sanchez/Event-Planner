@@ -86,30 +86,6 @@ const findUserByEmail = async (email) => {
   }
 };
 
-const findUserByEmails = async (emails) => {
-  try {
-    checkAuth();
-
-    const foundUsers = [];
-    const notFoundEmails = [];
-
-    //process each email individually
-    for (const email of emails) {
-      const user = await findUserByEmail(email);
-
-      if (user) {
-        foundUsers.push(user);
-      } else {
-        notFoundEmails.push(email);
-      }
-    }
-    return { foundUsers, notFoundEmails };
-  } catch (error) {
-    console.log('Error finding users by emails:', error);
-    throw error;
-  }
-}
-
 const searchUsers = async(searchQuery) => {
   try {
     checkAuth();
@@ -123,7 +99,6 @@ const searchUsers = async(searchQuery) => {
 
     const usersRef = collection(db, 'users');
 
-    //queries for emailLowercase and displayNameLowercase (case-insensitive search)
     const emailQuery = query(
       usersRef,
       where('emailLowercase', '>=', q),
@@ -163,10 +138,10 @@ const searchUsers = async(searchQuery) => {
   } catch (error) {
     console.log('Error searching users:', error);
 
-    //on error return empty list
+    //on error return just an empty list
     return []
   }
 };
 
 
-export { createOrUpdateUserProfile , getUserProfile, findUserByEmail, findUserByEmails, searchUsers};
+export { createOrUpdateUserProfile , getUserProfile, findUserByEmail, searchUsers};

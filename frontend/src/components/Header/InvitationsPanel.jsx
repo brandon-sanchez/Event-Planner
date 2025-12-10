@@ -138,6 +138,11 @@ function InvitationsPanel({
           const inviter = invitation.invitedBy;
           const isProcessing = processingId === invitation.id;
 
+          const eventColor = event?.color || "blue";
+          const isCustomColor = typeof eventColor === "string" && eventColor.startsWith("#");
+          const colorClass = getColorClasses(eventColor, "bg");
+          const colorStyle = isCustomColor ? { backgroundColor: eventColor } : undefined;
+
           return (
             <div
               key={invitation.id}
@@ -149,7 +154,8 @@ function InvitationsPanel({
               <div className="flex items-start justify-between mb-2">
                 <div className="flex items-center space-x-2 flex-1">
                   <div
-                    className={`w-1 ${isInDropdown ? "h-10" : "h-12"} rounded ${getColorClasses(event?.color || "blue", "bg")}`}
+                    className={`w-1 ${isInDropdown ? "h-10" : "h-12"} rounded ${colorClass}`}
+                    style={colorStyle}
                   />
                   <div>
                     <h4

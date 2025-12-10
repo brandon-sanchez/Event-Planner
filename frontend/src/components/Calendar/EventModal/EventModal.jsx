@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { convertTo24hourFormat } from "../CalendarUtils";
+import { auth } from "../../../config/firebase";
 import { sendMultipleInvitations } from "../../../services/invitationService";
 import EventBasicFields from "./EventBasicFields";
 import RecurringEventFields from "./RecurringEventFields";
@@ -39,6 +40,7 @@ function EventModal({
   onCreateEvent,
   editEvent = null,
   onUpdateEvent,
+  onRequestLeave, // optional: used when attendee tries to remove self
 }) {
   const [newEvent, setNewEvent] = useState(buildEmptyEvent);
 
@@ -52,6 +54,7 @@ function EventModal({
   });
 
   const [isSendingInvites, setIsSendingInvites] = useState(false);
+  const [isAIParsing, setIsAIParsing] = useState(false);
 
   const isEditingEvent = editEvent !== null;
 
@@ -118,6 +121,16 @@ function EventModal({
   };
 
   const handleRemoveUser = (userToRemove) => {
+    // Do not allow removing the event owner while editing
+    if (
+      isEditingEvent &&
+      editEvent?.createdBy &&
+      (editEvent.createdBy.email?.toLowerCase() === userToRemove.email?.toLowerCase() ||
+        (editEvent.createdBy.userId && editEvent.createdBy.userId === userToRemove.userId))
+    ) {
+      return;
+    }
+
     setNewEvent({
       ...newEvent,
       attendees: newEvent.attendees.filter(
@@ -155,6 +168,39 @@ function EventModal({
     const hasErrors = Object.values(newErrors).some((error) => error === true);
 
     if (!hasErrors) {
+      // if the user is editing and user removes themselves and they are not the owner of the event, trigger leave flow instead of updating
+      if (isEditingEvent && onRequestLeave) {
+        const currentUserId = auth.currentUser?.uid;
+        const currentUserEmail = auth.currentUser?.email?.toLowerCase();
+        const isOwner =
+          editEvent?.createdBy &&
+          ((editEvent.createdBy.userId && editEvent.createdBy.userId === currentUserId) ||
+            (editEvent.createdBy.email &&
+              currentUserEmail &&
+              editEvent.createdBy.email.toLowerCase() === currentUserEmail));
+
+        const wasAttendee = (editEvent?.attendees || []).some((att) => {
+          const emailLower = att.email?.toLowerCase();
+          return (
+            (currentUserId && att.userId === currentUserId) ||
+            (currentUserEmail && emailLower === currentUserEmail)
+          );
+        });
+
+        const stillAttendee = (newEvent.attendees || []).some((att) => {
+          const emailLower = att.email?.toLowerCase();
+          return (
+            (currentUserId && att.userId === currentUserId) ||
+            (currentUserEmail && emailLower === currentUserEmail)
+          );
+        });
+
+        if (wasAttendee && !stillAttendee && !isOwner) {
+          onRequestLeave(editEvent.id);
+          return;
+        }
+      }
+
       try {
         let createdEvent = null;
         const normalizedRecurrence = newEvent.recurrence?.isRecurring
@@ -283,6 +329,9 @@ function EventModal({
               setError={setError}
               updateRecurrence={updateRecurrence}
               focusPicker={focusPicker}
+              isAIParsing={isAIParsing}
+              setIsAIParsing={setIsAIParsing}
+              isEditingEvent={isEditingEvent}
             />
 
             {/*date field or recurrence fields*/}
