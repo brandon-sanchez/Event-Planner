@@ -9,6 +9,12 @@
   --color-app-muted: #9E9EA6;
 }
 
+/* did this to remove the overscolling white space that was occuring when I would overscroll on a page */
+html, body {
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
+}
+
 @layer utilities {
   @keyframes fadeIn {
     from {
