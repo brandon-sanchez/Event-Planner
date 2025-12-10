@@ -39,14 +39,14 @@ function CreatePollModal({
   poll,
   onUpdated,
 }) {
-  // State to hold list of date/time options
-  const [options, setOptions] = useState([
-    { id: crypto.randomUUID(), date: "", start: "", end: "" },
-  ]);
-  // Whether the form is currently submitting
+  // list of date/time options
+  const [options, setOptions] = useState([]);
   const [submitting, setSubmitting] = useState(false);
-  // Validation state for missing or incomplete options
   const [error, setError] = useState({ options: false });
+
+  // NEW: poll closing date/time (optional)
+  const [closingDate, setClosingDate] = useState("");
+  const [closingTime, setClosingTime] = useState("");
 
   const isEditing = !!poll;
 
@@ -68,7 +68,18 @@ function CreatePollModal({
     setSubmitting(false);
     setError({ options: false });
 
+    // reset closing fields
+    setClosingDate("");
+    setClosingTime("");
+
     if (isEditing && poll) {
+      // prefill closingAt if present
+      if (poll.closingAt) {
+        const { date, time } = isoToLocalInputs(poll.closingAt);
+        setClosingDate(date);
+        setClosingTime(time);
+      }
+
       // Build options from poll.options except the "original" one
       const extraOptions = (poll.options || []).filter(
         (opt) => opt.id !== "original"
@@ -88,40 +99,75 @@ function CreatePollModal({
         return {
           id: opt.id || crypto.randomUUID(),
           date,
-          start: startTime, // "HH:MM" local time
-          end: endTime, // "HH:MM" local time
+          start: startTime, // "HH:MM"
+          end: endTime,     // "HH:MM"
         };
       });
 
       setOptions(mapped);
     } else {
-      // create mode: blank options
-      setOptions([
-        { id: crypto.randomUUID(), date: "", start: "", end: "" },
-      ]);
+     // create mode: start with one row prefilled from the event's original time
+       const defaultDate = event?.date || "";
+       const defaultStart = event?.startTime
+         ? convertTo24hourFormat(event.startTime)
+         : "";
+       const defaultEnd = event?.endTime
+         ? convertTo24hourFormat(event.endTime)
+         : "";
+
+       setOptions([
+         {
+           id: crypto.randomUUID(),
+           date: defaultDate,
+           start: defaultStart,
+           end: defaultEnd,
+         },
+       ]);
     }
   }, [isOpen, isEditing, poll]);
 
-  // close modal and reset error
   const handleClose = () => {
     setError({ options: false });
     onClose();
   };
 
-  // add new block
   const addOption = () => {
-    setOptions((prev) => [
-      ...prev,
-      { id: crypto.randomUUID(), date: "", start: "", end: "" },
-    ]);
+    setOptions((prev) => {
+      // 1) If there is a previous option, reuse its values
+      const last = prev[prev.length - 1];
+
+      const baseDate =
+        last?.date ||
+        event?.date ||
+        "";
+      const baseStart =
+        last?.start ||
+        (event?.startTime
+          ? convertTo24hourFormat(event.startTime)
+          : "");
+      const baseEnd =
+        last?.end ||
+        (event?.endTime
+          ? convertTo24hourFormat(event.endTime)
+          : "");
+
+      return [
+        ...prev,
+        {
+          id: crypto.randomUUID(),
+          date: baseDate,
+          start: baseStart,
+          end: baseEnd,
+        },
+      ];
+    });
   };
 
-  // remove an option
+
   const removeOption = (id) => {
     setOptions((prev) => prev.filter((o) => o.id !== id));
   };
 
-  // update a specific field (start, end, or date)
   const updateOption = (id, field, value) => {
     setOptions((prev) =>
       prev.map((o) => (o.id === id ? { ...o, [field]: value } : o))
@@ -142,7 +188,6 @@ function CreatePollModal({
           ]
         : [];
 
-    // Format valid user-added options
     const extras = options
       .filter((o) => o.date && o.start && o.end)
       .map((o) => {
@@ -154,18 +199,21 @@ function CreatePollModal({
       })
       .filter(Boolean);
 
-    // Merge original + new options
     const allOptions = [...original, ...extras];
 
-    // Validate that at least one valid option
     const newErrors = { options: allOptions.length === 0 };
     setError(newErrors);
-    const hasErrors = Object.values(newErrors).some(Boolean);
-    if (hasErrors) return;
+    if (Object.values(newErrors).some(Boolean)) return;
+
+    // build closingAt ISO if provided
+    let closingAt = null;
+    if (closingDate && closingTime) {
+      closingAt = toISO(closingDate, closingTime);
+    }
 
     setSubmitting(true);
     try {
-      // figure out canonical owner + eventKey for shared polls
+      // figure out canonical owner + eventKey
       const ownerId =
         event?.createdBy?.userId ||
         event?.createdBy?.uid ||
@@ -182,10 +230,10 @@ function CreatePollModal({
         title: event?.title ? `${event.title} — Time Poll` : "Time Poll",
         options: allOptions,
         multiSelect: true,
+        closingAt, // NEW
       };
 
       if (isEditing && poll) {
-        // UPDATE existing poll
         const updated = await updatePoll(
           ownerId,
           eventKey,
@@ -196,7 +244,6 @@ function CreatePollModal({
         onUpdated?.(updated);
         console.log("[CreatePollModal] poll updated:", updated.id);
       } else {
-        // CREATE new poll
         const created = await createPoll(ownerId, eventKey, payload);
         if (!created) throw new Error("createPoll returned null/undefined");
         onCreated?.(created);
@@ -228,6 +275,7 @@ function CreatePollModal({
           </button>
         </div>
 
+        {/* Original event time (locked) */}
         <div className="space-y-2 mb-4">
           <label className="block text-sm font-medium text-gray-300">
             Original Date &amp; Time (from event)
@@ -259,7 +307,8 @@ function CreatePollModal({
           </div>
         </div>
 
-        <div className="space-y-3">
+        {/* Additional date/times */}
+        <div className="space-y-3 mb-4">
           <div className="text-sm font-medium text-gray-300">
             Additional Date/Times
           </div>
@@ -313,6 +362,32 @@ function CreatePollModal({
               original time is valid.
             </p>
           )}
+        </div>
+
+        {/* NEW: Poll closing time */}
+        <div className="space-y-2 mb-4">
+          <label className="block text-sm font-medium text-gray-300">
+            Poll closing time (optional)
+          </label>
+          <div className="grid grid-cols-2 gap-2">
+            <input
+              type="date"
+              value={closingDate}
+              onChange={(e) => setClosingDate(e.target.value)}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white cursor-pointer"
+            />
+            <input
+              type="time"
+              value={closingTime}
+              onChange={(e) => setClosingTime(e.target.value)}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white cursor-pointer"
+            />
+          </div>
+          <p className="text-xs text-gray-400">
+            If set, the poll will automatically close at this time and choose
+            the time option with the most votes (ties broken by earliest start
+            time).
+          </p>
         </div>
 
         <div className="flex justify-end space-x-3 pt-4">

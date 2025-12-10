@@ -44,6 +44,9 @@ const createPoll = async (ownerId, eventKey, pollData) => {
       createdBy: currentUserId,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
+
+      // NEW: optional auto-closing timestamp (ISO string)
+      closingAt: pollData.closingAt || null,
     };
 
     const docRef = await addDoc(pollsCol, newPoll);
