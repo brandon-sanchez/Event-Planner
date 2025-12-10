@@ -87,11 +87,9 @@ export default function Header({
   };
 
   return (
-    <header className="bg-app-card border-b border-app-border px-6 py-4">
-      <div className="flex justify-between items-center">
-        <div className="flex items-center space-x-3">
-          <h1 className="text-xl font-semibold">Dashboard</h1>
-        </div>
+    <header className="sticky top-0 z-30 border-b border-slate-800/70 bg-slate-950/40 backdrop-blur-xl px-4 sm:px-6 py-4 shadow-[0_10px_40px_rgba(0,0,0,0.35)]">
+      <div className="flex justify-between items-center w-full">
+        <h1 className="text-xl font-semibold text-slate-50 tracking-tight">Dashboard</h1>
 
         <div className="flex items-center space-x-4">
           {/* notification bell */}
@@ -115,16 +113,16 @@ export default function Header({
             </button>
 
             {showProfileMenu && (
-              <div className="absolute right-0 mt-2 w-56 bg-app-card rounded-lg shadow-xl py-2 z-50 border border-app-border">
-                <div className="px-4 py-2 border-b border-app-border">
-                  <div className="font-medium">{currentUser.name}</div>
-                  <div className="text-sm text-app-muted">
+              <div className="absolute right-0 mt-2 w-56 bg-slate-900/90 rounded-xl shadow-2xl py-2 z-50 border border-slate-800 backdrop-blur-xl">
+                <div className="px-4 py-2 border-b border-slate-800">
+                  <div className="font-medium text-slate-50">{currentUser.name}</div>
+                  <div className="text-sm text-slate-400">
                     {currentUser.email}
                   </div>
                 </div>
                 <button
                   onClick={handleLogout}
-                  className="w-full text-left px-4 py-2 hover:bg-app-bg text-red-400"
+                  className="w-full text-left px-4 py-2 hover:bg-slate-800 text-rose-300 transition-colors rounded-b-xl"
                 >
                   Log out
                 </button>

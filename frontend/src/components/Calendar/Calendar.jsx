@@ -72,7 +72,6 @@ function Calendar() {
     };
   }, []);
 
-  // keeps hover card from going off-screen
   const clampHoverY = (desiredCenterY, cardHeight, padding) => {
     const minCenterY = padding + cardHeight / 2;
     const maxCenterY = Math.max(minCenterY, window.innerHeight - padding - cardHeight / 2);
@@ -86,7 +85,7 @@ function Calendar() {
 
     const rect = e.currentTarget.getBoundingClientRect();
     const padding = 12;
-    const fallbackHeight = Math.max(120, window.innerHeight - padding * 2);
+    const fallbackHeight = 320; // keep initial position near the hovered event
     const desiredCenterY = rect.top + rect.height / 2;
 
     setHoverAnchor({ top: rect.top, right: rect.right, height: rect.height });
@@ -267,7 +266,7 @@ function Calendar() {
 
   return (
     <div>
-      <div className="flex flex-col lg:flex-row gap-6">
+      <div className="flex flex-col lg:flex-row gap-6 items-stretch">
         <div className="flex-1">
           <CalendarHeader
             currentDate={currentDate}
