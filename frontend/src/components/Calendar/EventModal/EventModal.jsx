@@ -251,7 +251,7 @@ function EventModal({
 
   return (
     <div className="fixed inset-0 backdrop-blur-md flex items-center justify-center z-50 animate-fadeIn">
-      <div className="bg-app-card rounded-lg p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl animate-slideUp">
+      <div className="bg-slate-900/95 border border-slate-700 rounded-3xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl shadow-black/40 animate-slideUp">
         <style>{`
           .picker-hidden::-webkit-calendar-picker-indicator { opacity: 0; display: none; }
           .picker-hidden::-webkit-inner-spin-button { display: none; }
@@ -261,14 +261,14 @@ function EventModal({
           input[type="color"]::-webkit-color-swatch { border: none; border-radius: 9999px; }
         `}</style>
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold text-app-text">
+          <h2 className="text-xl font-semibold text-slate-100">
             {isEditingEvent ? "Edit Event" : "Create New Event"}
           </h2>
 
           {/*x button*/}
           <button
             onClick={handleClose}
-            className="text-app-muted hover:text-app-text"
+            className="text-slate-400 hover:text-slate-100 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -312,17 +312,17 @@ function EventModal({
           <div className="flex justify-end space-x-3 pt-4">
             <button
               onClick={handleClose}
-              className="px-4 py-2 text-app-muted hover:text-app-text"
+              className="px-4 py-2 text-slate-400 hover:text-slate-100 transition-colors"
             >
               Cancel
             </button>
             <button
               onClick={handleSavingEvent}
               disabled={isSendingInvites}
-              className={`px-6 py-2 text-white rounded-lg ${
+              className={`px-6 py-2 text-white rounded-xl shadow-lg transition-all ${
                 isSendingInvites
-                  ? "bg-app-muted cursor-not-allowed"
-                  : "bg-app-rose hover:opacity-90"
+                  ? "bg-slate-600 cursor-not-allowed"
+                  : "bg-rose-500 hover:bg-rose-600 shadow-rose-900/40"
               }`}
             >
               {isSendingInvites
