@@ -27,11 +27,10 @@ function UpcomingEventsList({ events, onDeleteEvent, onEditEvent, onLeaveEvent }
       };
 
       return getDateTime(a) - getDateTime(b);
-    })
-    .slice(0, 5);
+    });
 
   return (
-    <div className="w-full lg:w-80 bg-slate-900/70 border border-slate-800 rounded-2xl shadow-2xl shadow-black/30 h-[620px] max-h-[75vh] lg:h-auto lg:self-stretch flex flex-col">
+    <div className="w-full lg:w-80 bg-slate-900/70 border border-slate-800 rounded-2xl shadow-2xl shadow-black/30 flex flex-col overflow-hidden h-[620px] lg:h-[825px]">
       <h3 className="text-lg font-semibold px-4 sm:px-6 pt-4 sm:pt-6 pb-4 flex items-center text-slate-100 flex-shrink-0">
         <CalendarIcon className="w-5 h-5 mr-2" />
         Upcoming Events
@@ -53,39 +52,39 @@ function UpcomingEventsList({ events, onDeleteEvent, onEditEvent, onLeaveEvent }
             return (
             <div
               key={event.occurrenceId || event.id}
-              className={`relative rounded-xl p-4 group text-slate-50 border border-slate-800/60 shadow-lg shadow-black/30 ${borderClass}`}
+              className={`relative rounded-xl p-4 group text-slate-50 border border-slate-800/60 shadow-lg shadow-black/30 flex flex-col ${borderClass}`}
               style={bgStyle}
             >
               {/* buttons */}
-              <div className="absolute top-2 right-2 flex items-center gap-1">
+              <div className="absolute top-2 right-2 z-10 flex items-center gap-1 pointer-events-auto">
                 <button
                   onClick={() => onEditEvent(event)}
                   aria-label={`Edit ${event.title}`}
                   title="Edit event"
-                  className="rounded-md p-1.5 text-app-rose opacity-0 transition-opacity hover:opacity-80 hover:bg-app-rose/10 group-hover:opacity-100"
+                  className="rounded-md p-1.5 text-app-rose opacity-0 transition-opacity hover:opacity-80 hover:bg-app-rose/10 group-hover:opacity-100 focus:opacity-100 focus:outline-none"
                 >
                   <Pencil className="h-4 w-4" />
                 </button>
 
                 {event.isSharedEvent ? (
                   <button
-                    onClick={() => onLeaveEvent && onLeaveEvent(event.seriesId || event.id)}
-                    aria-label={`Leave ${event.title}`}
-                    title="Leave Group Event"
-                    className="rounded-md p-1.5 text-orange-400 opacity-0 transition-opacity hover:text-orange-300 hover:bg-orange-500/10 group-hover:opacity-100"
-                  >
-                    <LogOut className="h-4 w-4" />
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => onDeleteEvent(event.seriesId || event.id)}
-                    aria-label={`Delete ${event.title}`}
-                    title="Delete event"
-                    className="rounded-md p-1.5 text-red-400 opacity-0 transition-opacity hover:text-red-300 hover:bg-red-500/10 group-hover:opacity-100"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                )}
+                  onClick={() => onLeaveEvent && onLeaveEvent(event.seriesId || event.id)}
+                  aria-label={`Leave ${event.title}`}
+                  title="Leave Group Event"
+                  className="rounded-md p-1.5 text-orange-400 opacity-0 transition-opacity hover:text-orange-300 hover:bg-orange-500/10 group-hover:opacity-100 focus:opacity-100 focus:outline-none"
+                >
+                  <LogOut className="h-4 w-4" />
+                </button>
+              ) : (
+                <button
+                  onClick={() => onDeleteEvent(event.seriesId || event.id)}
+                  aria-label={`Delete ${event.title}`}
+                  title="Delete event"
+                  className="rounded-md p-1.5 text-red-400 opacity-0 transition-opacity hover:text-red-300 hover:bg-red-500/10 group-hover:opacity-100 focus:opacity-100 focus:outline-none"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              )}
               </div>
 
               {/* title */}
