@@ -123,7 +123,7 @@ function EventBasicFields({
               }
             }}
             className={`w-full px-3 py-2 pr-12 bg-app-bg border rounded-lg text-app-text focus:outline-none focus:border-app-rose focus:ring-2 focus:ring-app-rose/30 ${error.title ? "border-red-500" : "border-app-border"}`}
-            placeholder="e.g., Meeting tomorrow at 2pm with John"
+            placeholder="e.g. Presentation with Brandon and Hari"
             disabled={isAIParsing}
           />
           <button
