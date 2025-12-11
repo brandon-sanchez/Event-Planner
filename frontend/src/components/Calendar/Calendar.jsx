@@ -3,7 +3,7 @@ import { auth, db } from "../../config/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { getCurrentUser } from "../../utils/Utils";
 import { convertTo12HourFormat, expandRecurringEvents } from "./CalendarUtils";
-import CreateEventModal from "./CreateEventModal";
+import EventModal from "./EventModal/EventModal";
 import CalendarHeader from "./CalendarHeader";
 import CalendarGrid from "./CalendarGrid";
 import UpcomingEventsList from "./UpcomingEventsList";
@@ -31,6 +31,7 @@ function Calendar() {
   const [isDeletingEvent, setIsDeletingEvent] = useState(false);
   const hoverCardRef = useRef(null);
   const hoverTimeoutRef = useRef(null);
+  const [activeTab, setActiveTab] = useState("upcoming");
 
   const currentUser = getCurrentUser(auth);
 
@@ -281,7 +282,7 @@ function Calendar() {
   return (
     <div>
       <div className="flex flex-col lg:flex-row gap-6 items-stretch">
-        <div className="flex-1">
+        <div className="flex-[2] min-w-0">
           <CalendarHeader
             currentDate={currentDate}
             onNavigateMonth={navigateMonth}
@@ -297,15 +298,46 @@ function Calendar() {
           />
         </div>
 
-        {/* Added PollsList in right-hand column */}
-        <div className="flex flex-col gap-4">
-          <UpcomingEventsList
-            events={expandedEvents}
-            onDeleteEvent={handleDeleteEvent}
-            onLeaveEvent={handleLeaveEvent}
-            onEditEvent={handleEditEvent}
-          />
-          <PollsList events={expandedEvents} refresh={pollRefresh} />
+         <div className="w-full xl:w-96 shrink-0">
+            <div className="bg-app-card rounded-xl p-4 h-full flex flex-col">
+              {/* Tabs header */}
+              <div className="flex mb-4 border-b border-app-border">
+                <button
+                  onClick={() => setActiveTab("upcoming")}
+                  className={`px-3 py-2 text-sm font-medium border-b-2 transition-colors ${
+                    activeTab === "upcoming"
+                      ? "border-rose-500 text-white"
+                      : "border-transparent text-app-muted hover:text-app-text"
+                  }`}
+                >
+                  Upcoming
+                </button>
+                <button
+                  onClick={() => setActiveTab("polls")}
+                  className={`ml-4 px-3 py-2 text-sm font-medium border-b-2 transition-colors ${
+                    activeTab === "polls"
+                      ? "border-rose-500 text-white"
+                      : "border-transparent text-app-muted hover:text-app-text"
+                  }`}
+                >
+                  Polls
+                </button>
+              </div>
+
+              {/* Tab content */}
+              <div className="flex-1 min-h-0 max-h-[70vh] overflow-y-auto overflow-x-hidden pr-2">
+                {activeTab === "upcoming" ? (
+                  <UpcomingEventsList
+                    events={expandedEvents}
+                    onDeleteEvent={handleDeleteEvent}
+                    onLeaveEvent={handleLeaveEvent}
+                    onEditEvent={handleEditEvent}
+                  />
+                ) : (
+                  <PollsList events={expandedEvents} refresh={pollRefresh} />
+                )}
+              </div>
+            </div>
         </div>
       </div>
 
@@ -378,7 +410,7 @@ function Calendar() {
         </div>
       )}
 
-      <CreateEventModal
+      <EventModal
         isOpen={showCreateModal}
         onClose={() => {
           setShowCreateModal(false);
