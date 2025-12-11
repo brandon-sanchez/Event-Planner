@@ -41,6 +41,11 @@ const getEventsForDay = (currentDate, events, day) => {
   return events
     .filter((event) => event.date === dateStr)
     .sort((a, b) => {
+
+      const prA = a.priority ?? 0;
+      const prB = b.priority ?? 0;
+      if (prA !== prB) return prB - prA;
+
       const aTime = parseTime(a.startTime);
       const bTime = parseTime(b.startTime);
 

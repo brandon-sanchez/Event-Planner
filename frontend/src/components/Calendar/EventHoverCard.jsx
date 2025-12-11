@@ -45,8 +45,14 @@ function EventHoverCard({
     >
       {/* title and buttons */}
       <div className="flex items-start justify-between gap-2 mb-2">
-        <h3 className="text-white font-semibold text-lg flex-1 break-words">
+        <h3 className="text-white font-semibold text-lg flex-1 break-words flex items-center gap-2">
           {event.title}
+
+          {event.priority && (
+            <span className="text-yellow-300 text-sm">
+              {"★".repeat(event.priority)}
+            </span>
+          )}
         </h3>
 
         <div className="flex gap-2 flex-shrink-0">

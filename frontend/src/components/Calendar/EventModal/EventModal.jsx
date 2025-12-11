@@ -28,10 +28,9 @@ const buildEmptyEvent = () => ({
   isGroupEvent: false,
   color: "blue",
   attendees: [],
+  priority: 3,
   recurrence: buildDefaultRecurrence(),
 });
-
-//modal for creating a new event or editing an event
 
 function EventModal({
   isOpen,
@@ -42,7 +41,6 @@ function EventModal({
 }) {
   const [newEvent, setNewEvent] = useState(buildEmptyEvent);
 
-  //to ensure required fields are filled in
   const [error, setError] = useState({
     title: false,
     date: false,
@@ -55,7 +53,6 @@ function EventModal({
 
   const isEditingEvent = editEvent !== null;
 
-  // need to convert times from 12hr to 24hr for the time inputs
   useEffect(() => {
     if (editEvent) {
       const convertedStartTime = convertTo24hourFormat(editEvent.startTime);
@@ -72,6 +69,7 @@ function EventModal({
         isGroupEvent: editEvent.isGroupEvent || false,
         color: editEvent.color || "blue",
         attendees: editEvent.attendees || [],
+        priority: editEvent.priority ?? 3,
         recurrence: {
           ...buildDefaultRecurrence(),
           ...(editEvent.recurrence || {}),
@@ -101,7 +99,6 @@ function EventModal({
     }
   };
 
-  // Handler for when a user is selected from the dropdown
   const handleUserSelect = (user) => {
     const attendee = {
       displayName: user.displayName,
@@ -127,7 +124,6 @@ function EventModal({
   };
 
   const handleSavingEvent = async () => {
-    // recurring events have different validation than one-time events
     const newErrors = newEvent.recurrence?.isRecurring
       ? {
           title: !newEvent.title,
@@ -150,87 +146,90 @@ function EventModal({
           endTime: !newEvent.endTime,
           location: !newEvent.isVirtual && !newEvent.location,
         };
+
     setError(newErrors);
 
-    const hasErrors = Object.values(newErrors).some((error) => error === true);
+    if (Object.values(newErrors).some((e) => e === true)) return;
 
-    if (!hasErrors) {
-      try {
-        let createdEvent = null;
-        const normalizedRecurrence = newEvent.recurrence?.isRecurring
-          ? {
-              ...buildDefaultRecurrence(),
-              ...newEvent.recurrence,
-              isRecurring: true,
-              startDate: newEvent.recurrence.startDate,
-              endDate: newEvent.recurrence.endMode === "date" ? newEvent.recurrence.endDate : "",
-              occurrenceCount:
-                newEvent.recurrence.endMode === "count"
-                  ? Math.max(
-                      1,
-                      Math.min(
-                        Number(newEvent.recurrence.occurrenceCount) || 1,
-                        52
-                      )
+    try {
+      let createdEvent = null;
+
+      const normalizedRecurrence = newEvent.recurrence?.isRecurring
+        ? {
+            ...buildDefaultRecurrence(),
+            ...newEvent.recurrence,
+            isRecurring: true,
+            startDate: newEvent.recurrence.startDate,
+            endDate:
+              newEvent.recurrence.endMode === "date"
+                ? newEvent.recurrence.endDate
+                : "",
+            occurrenceCount:
+              newEvent.recurrence.endMode === "count"
+                ? Math.max(
+                    1,
+                    Math.min(
+                      Number(newEvent.recurrence.occurrenceCount) || 1,
+                      52
                     )
-                  : 52,
-              daysOfWeek:
-                newEvent.recurrence.daysOfWeek && newEvent.recurrence.daysOfWeek.length > 0
-                  ? newEvent.recurrence.daysOfWeek
-                  : [],
-            }
-          : {
-              ...buildDefaultRecurrence(),
-              isRecurring: false,
-            };
-
-        if (isEditingEvent) {
-          await onUpdateEvent(editEvent.id, { ...newEvent, date: normalizedRecurrence.startDate || newEvent.date, recurrence: normalizedRecurrence });
-        } else {
-          createdEvent = await onCreateEvent({ ...newEvent, date: normalizedRecurrence.startDate || newEvent.date, recurrence: normalizedRecurrence });
-        }
-
-        // only send invites when creating new events, not editing
-        if (
-          newEvent.isGroupEvent &&
-          newEvent.attendees.length > 0 &&
-          !isEditingEvent
-        ) {
-          setIsSendingInvites(true);
-
-          const attendeeEmails = newEvent.attendees.map((a) => a.email);
-
-          console.log(`Sending invitations to: ${attendeeEmails.join(", ")}`);
-
-          const results = await sendMultipleInvitations(
-            attendeeEmails,
-            createdEvent
-          );
-
-          console.log(`Sent ${results.successful.length} invitations`);
-          if (results.failed.length > 0) {
-            console.log(
-              `Failed to send ${results.failed.length} invitations:`,
-              results.failed.map((f) => `${f.email}: ${f.error}`).join(", ")
-            );
+                  )
+                : 52,
+            daysOfWeek:
+              newEvent.recurrence.daysOfWeek?.length > 0
+                ? newEvent.recurrence.daysOfWeek
+                : [],
           }
+        : {
+            ...buildDefaultRecurrence(),
+            isRecurring: false,
+          };
 
-          setIsSendingInvites(false);
-        }
-
-        setNewEvent(buildEmptyEvent());
-
-        setError({
-          title: false,
-          date: false,
-          startTime: false,
-          endTime: false,
-          location: false,
+      if (isEditingEvent) {
+        await onUpdateEvent(editEvent.id, {
+          ...newEvent,
+          date: normalizedRecurrence.startDate || newEvent.date,
+          recurrence: normalizedRecurrence,
         });
-      } catch (error) {
-        console.error("Error creating event or sending invitations:", error);
-        alert("Error creating event. Please try again.");
+      } else {
+        createdEvent = await onCreateEvent({
+          ...newEvent,
+          date: normalizedRecurrence.startDate || newEvent.date,
+          recurrence: normalizedRecurrence,
+        });
+
+        onClose();
       }
+
+      if (
+        newEvent.isGroupEvent &&
+        newEvent.attendees.length > 0 &&
+        !isEditingEvent
+      ) {
+        setIsSendingInvites(true);
+
+        const attendeeEmails = newEvent.attendees.map((a) => a.email);
+
+        const results = await sendMultipleInvitations(
+          attendeeEmails,
+          createdEvent
+        );
+
+        console.log("Invitations:", results);
+
+        setIsSendingInvites(false);
+      }
+
+      setNewEvent(buildEmptyEvent());
+      setError({
+        title: false,
+        date: false,
+        startTime: false,
+        endTime: false,
+        location: false,
+      });
+    } catch (err) {
+      console.error(err);
+      alert("Error creating event. Please try again.");
     }
   };
 
@@ -238,7 +237,6 @@ function EventModal({
     if (!isEditingEvent) {
       setNewEvent(buildEmptyEvent());
     }
-
     setError({
       title: false,
       date: false,
@@ -261,12 +259,12 @@ function EventModal({
             input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
             input[type="color"]::-webkit-color-swatch { border: none; border-radius: 9999px; }
           `}</style>
+
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold text-slate-100">
               {isEditingEvent ? "Edit Event" : "Create New Event"}
             </h2>
 
-            {/*x button*/}
             <button
               onClick={handleClose}
               className="text-slate-400 hover:text-slate-100 transition-colors"
@@ -285,7 +283,6 @@ function EventModal({
               focusPicker={focusPicker}
             />
 
-            {/*date field or recurrence fields*/}
             {newEvent.recurrence?.isRecurring && (
               <RecurringEventFields
                 recurrence={newEvent.recurrence}
@@ -301,6 +298,30 @@ function EventModal({
               onChange={(color) => setNewEvent({ ...newEvent, color })}
             />
 
+            {/* Priority stars */}
+            <div>
+              <label className="block text-sm font-medium text-app-text mb-1">
+                Priority
+              </label>
+
+              <div className="flex gap-1">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    type="button"
+                    onClick={() => setNewEvent({ ...newEvent, priority: star })}
+                    className={`text-2xl transition ${
+                      star <= newEvent.priority
+                        ? "text-yellow-400"
+                        : "text-gray-500"
+                    }`}
+                  >
+                    ★
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {newEvent.isGroupEvent && (
               <AttendeeSelector
                 attendees={newEvent.attendees}
@@ -309,7 +330,6 @@ function EventModal({
               />
             )}
 
-            {/*cancel button*/}
             <div className="flex justify-end space-x-3 pt-4">
               <button
                 onClick={handleClose}
@@ -317,6 +337,7 @@ function EventModal({
               >
                 Cancel
               </button>
+
               <button
                 onClick={handleSavingEvent}
                 disabled={isSendingInvites}
@@ -329,11 +350,12 @@ function EventModal({
                 {isSendingInvites
                   ? "Sending invites..."
                   : isEditingEvent
-                    ? "Update Event"
-                    : "Create Event"}
+                  ? "Update Event"
+                  : "Create Event"}
               </button>
             </div>
           </div>
+
         </div>
       </div>
     </div>
