@@ -1,7 +1,7 @@
 import { Calendar as CalendarIcon, MapPin, Users, Clock, Video, Trash2, Pencil, LogOut } from "lucide-react";
 import Avatar from "../Header/Avatar";
 import GoogleMapEmbed from "./GoogleMapEmbed";
-import { getColorClasses, formatDate } from "../../utils/Utils";
+import { getColorClasses, formatDate, isLightColor } from "../../utils/Utils";
 import { parseTime } from "./CalendarUtils";
 
 function EventHoverCard({
@@ -30,6 +30,20 @@ function EventHoverCard({
     return now >= eventStart;
   };
 
+  const eventColor = event.color || 'blue';
+  const isCustomColor = eventColor && eventColor.startsWith("#");
+  
+  // Determine text color based on background brightness
+  const isLight = isCustomColor && isLightColor(eventColor);
+  const textColorClass = isLight ? "text-gray-900" : "text-white";
+  const textMutedClass = isLight ? "text-gray-700" : "text-gray-100";
+  const iconColorClass = isLight ? "text-gray-800" : "text-gray-100";
+  
+  // hiding the people who are pending once the event has started but they can appear in the attendees list after they accept the invite.
+  const visibleAttendees = hasEventStarted()
+    ? event.attendees?.filter((attendee) => attendee.status !== 'pending')
+    : event.attendees || [];
+
   return (
     <div
       ref={cardRef}
@@ -45,34 +59,34 @@ function EventHoverCard({
     >
       {/* title and buttons */}
       <div className="flex items-start justify-between gap-2 mb-2">
-        <h3 className="text-white font-semibold text-lg flex-1 break-words">
+        <h3 className={`${textColorClass} font-semibold text-lg flex-1 break-words`}>
           {event.title}
         </h3>
 
         <div className="flex gap-2 flex-shrink-0">
-          <button
-            onClick={() => onEditEvent(event)}
-            className="inline-flex items-center rounded-md p-2 text-sm bg-white/10 hover:bg-white/20 text-white"
-            title="Edit event"
-          >
-            <Pencil className="w-4 h-4" />
-          </button>
-
           {/* added: create poll button */}
           {onCreatePoll && event?.isGroupEvent &&(
             <button
               onClick={() => onCreatePoll(event)}
-              className="inline-flex items-center rounded-md px-2 py-1 text-sm bg-blue-600/90 hover:bg-blue-600 text-white"
+              className={`inline-flex items-center rounded-md px-2 py-1 text-sm ${isLight ? "bg-blue-600 hover:bg-blue-700" : "bg-blue-600/90 hover:bg-blue-600"} text-white`}
               title="Create poll"
             >
               Create Poll
             </button>
           )}
 
+          <button
+            onClick={() => onEditEvent(event)}
+            className={`inline-flex items-center rounded-md p-2 text-sm ${isLight ? "bg-gray-800/20 hover:bg-gray-800/30 text-gray-900" : "bg-white/10 hover:bg-white/20 text-white"}`}
+            title="Edit event"
+          >
+            <Pencil className={`w-4 h-4 ${isLight ? "text-gray-900" : "text-white"}`} />
+          </button>
+
           {event.isSharedEvent ? (
             <button
               onClick={() => onLeaveEvent && onLeaveEvent(event.seriesId || event.id)}
-              className="inline-flex items-center rounded-md p-2 text-sm bg-orange-500/80 hover:bg-orange-500 text-white"
+              className={`inline-flex items-center rounded-md p-2 text-sm ${isLight ? "bg-orange-600 hover:bg-orange-700" : "bg-orange-500/80 hover:bg-orange-500"} text-white`}
               title="Leave Group Event"
             >
               <LogOut className="w-4 h-4" />
@@ -80,7 +94,7 @@ function EventHoverCard({
           ) : (
             <button
               onClick={() => onDeleteEvent(event.seriesId || event.id)}
-              className="inline-flex items-center rounded-md p-2 text-sm bg-red-500/80 hover:bg-red-500 text-white"
+              className={`inline-flex items-center rounded-md p-2 text-sm ${isLight ? "bg-red-600 hover:bg-red-700" : "bg-red-500/80 hover:bg-red-500"} text-white`}
               title="Delete event"
             >
               <Trash2 className="w-4 h-4" />
@@ -91,75 +105,79 @@ function EventHoverCard({
 
       {(event.isSharedEvent || event.attendees?.length > 0) && (
         <div className="mb-4">
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-app-rose/20 text-app-rose border border-app-rose/30">
-            Shared Event
+          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${
+            isLight 
+              ? "bg-yellow-600/30 text-yellow-900 border-yellow-600/40" 
+              : "bg-yellow-500/20 text-yellow-300 border-yellow-500/30"
+          }`}>
+            Group Event
           </span>
         </div>
       )}
 
       <div className="mb-3">
-        <div className="flex items-center text-gray-100 text-sm mb-1">
-          <CalendarIcon className="w-4 h-4 mr-2" />
+        <div className={`flex items-center ${textMutedClass} text-sm mb-1`}>
+          <CalendarIcon className={`w-4 h-4 mr-2 ${iconColorClass}`} />
           <span className="font-medium">Date</span>
         </div>
-        <div className="text-gray-100 text-sm ml-6">
+        <div className={`${textMutedClass} text-sm ml-6`}>
           {formatDate(event.date)}
         </div>
       </div>
 
       <div className="mb-3">
-        <div className="flex items-center text-gray-100 text-sm mb-1">
-          <Clock className="w-4 h-4 mr-2" />
+        <div className={`flex items-center ${textMutedClass} text-sm mb-1`}>
+          <Clock className={`w-4 h-4 mr-2 ${iconColorClass}`} />
           <span className="font-medium">Time</span>
         </div>
-        <div className="text-gray-100 text-sm ml-6">
+        <div className={`${textMutedClass} text-sm ml-6`}>
           {event.startTime} - {event.endTime}
         </div>
       </div>
 
       <div className="mb-3">
-        <div className="flex items-center text-gray-100 text-sm mb-1">
+        <div className={`flex items-center ${textMutedClass} text-sm mb-1`}>
           {event.isVirtual ? (
             <>
-              <Video className="w-4 h-4 mr-2" />
+              <Video className={`w-4 h-4 mr-2 ${iconColorClass}`} />
               <span className="font-medium">Virtual Event</span>
             </>
           ) : (
             <>
-              <MapPin className="w-4 h-4 mr-2" />
+              <MapPin className={`w-4 h-4 mr-2 ${iconColorClass}`} />
               <span className="font-medium">Location</span>
             </>
           )}
         </div>
         {!event.isVirtual && event.location && (
           <>
-            <div className="text-gray-100 text-sm ml-6 mb-3">{event.location}</div>
-            <GoogleMapEmbed address={event.location} className="h-full w-full" />
+            <div className={`${textMutedClass} text-sm ml-6 mb-3`}>{event.location}</div>
+            <GoogleMapEmbed address={event.location} className="h-full w-full" isLight={isLight} />
           </>
         )}
       </div>
 
       {event.description && (
         <div className="mb-3">
-          <div className="text-gray-100 text-sm font-medium mb-1">
+          <div className={`${textMutedClass} text-sm font-medium mb-1`}>
             Description
           </div>
-          <div className="text-gray-100 text-sm ml-6">
+          <div className={`${textMutedClass} text-sm ml-6`}>
             {event.description}
           </div>
         </div>
       )}
 
-      {event.attendees && event.attendees.length > 0 && (
+      {visibleAttendees && visibleAttendees.length > 0 && (
         <div className="mb-3">
-          <div className="flex items-center text-gray-100 text-sm mb-2">
-            <Users className="w-4 h-4 mr-2" />
+          <div className={`flex items-center ${textMutedClass} text-sm mb-2`}>
+            <Users className={`w-4 h-4 mr-2 ${iconColorClass}`} />
             <span className="font-medium">
-              Attendees ({event.attendees.length})
+              Attendees ({visibleAttendees.length})
             </span>
           </div>
           <div className="space-y-2 ml-6">
-            {event.attendees.map((attendee, idx) => {
+            {visibleAttendees.map((attendee, idx) => {
               const isOwner = event.createdBy && attendee.email === event.createdBy.email;
               const attendeeName =
                 attendee.displayName ||
@@ -171,13 +189,13 @@ function EventHoverCard({
                   <div className="flex items-center space-x-2">
                     <Avatar name={attendeeName} photoURL={attendee.photoURL} size="sm" />
                     <div className="text-sm">
-                      <div className="text-white">
+                      <div className={textColorClass}>
                         {attendeeName}
                         {isOwner && (
-                          <span className="text-gray-300 font-normal"> (Owner)</span>
+                          <span className={`${isLight ? "text-gray-600" : "text-gray-300"} font-normal`}> (Owner)</span>
                         )}
                       </div>
-                      <div className="text-gray-200 text-xs">
+                      <div className={`${isLight ? "text-gray-600" : "text-gray-200"} text-xs`}>
                         {attendee.email}
                       </div>
                     </div>
@@ -185,7 +203,11 @@ function EventHoverCard({
 
                   {/* if event hasn't started show pending invitees */}
                   {!hasEventStarted() && attendee.status === "pending" && (
-                    <span className="text-xs bg-yellow-500/20 text-yellow-300 px-2 py-1 rounded-full border border-yellow-500/30">
+                    <span className={`text-xs px-2 py-1 rounded-full border ${
+                      isLight 
+                        ? "bg-yellow-600/30 text-yellow-900 border-yellow-600/40" 
+                        : "bg-yellow-500/20 text-yellow-300 border-yellow-500/30"
+                    }`}>
                       Pending
                     </span>
                   )}

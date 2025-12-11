@@ -1,8 +1,9 @@
 import { Calendar as CalendarIcon, Trash2, Pencil, LogOut, Clock, MapPin, Video } from "lucide-react";
-import { getColorClasses } from "../../utils/Utils";
+import { getColorClasses, isLightColor } from "../../utils/Utils";
+import Avatar from "../Header/Avatar";
 import { parseTime } from "./CalendarUtils";
 
-function UpcomingEventsList({ events, onDeleteEvent, onEditEvent, onLeaveEvent }) {
+function UpcomingEventsList({ events, onDeleteEvent, onEditEvent, onLeaveEvent, hideContainer = false }) {
   const upcomingEvents = events
     .filter((event) => {
       if (!event.endTime || !event.startTime || !event.date) {
@@ -29,13 +30,8 @@ function UpcomingEventsList({ events, onDeleteEvent, onEditEvent, onLeaveEvent }
       return getDateTime(a) - getDateTime(b);
     });
 
-  return (
-    <div className="w-full lg:w-80 bg-slate-900/70 border border-slate-800 rounded-2xl shadow-2xl shadow-black/30 flex flex-col overflow-hidden h-[620px] lg:h-[825px]">
-      <h3 className="text-lg font-semibold px-4 sm:px-6 pt-4 sm:pt-6 pb-4 flex items-center text-slate-100 flex-shrink-0">
-        <CalendarIcon className="w-5 h-5 mr-2" />
-        Upcoming Events
-      </h3>
-      <div className="space-y-3 px-4 sm:px-6 pb-4 sm:pb-6 flex-1 overflow-y-auto">
+  const content = (
+    <div className="space-y-3">
         {upcomingEvents.length === 0 ? (
           <div className="text-center py-8 text-slate-500">
             <CalendarIcon className="w-12 h-12 mx-auto mb-3 opacity-50" />
@@ -48,11 +44,16 @@ function UpcomingEventsList({ events, onDeleteEvent, onEditEvent, onLeaveEvent }
             const bgStyle = isCustomColor
               ? { backgroundColor: event.color }
               : { backgroundColor: `${getColorClasses(event.color || 'blue', 'bgHex')}30` };
+            
+            // Determine text color based on background brightness
+            const textColorClass = isCustomColor && isLightColor(event.color)
+              ? "text-gray-900" // Dark text for light backgrounds
+              : "text-slate-50"; // Light text for dark backgrounds
 
             return (
             <div
               key={event.occurrenceId || event.id}
-              className={`relative rounded-xl p-4 group text-slate-50 border border-slate-800/60 shadow-lg shadow-black/30 flex flex-col ${borderClass}`}
+              className={`relative rounded-xl p-4 group ${textColorClass} border border-slate-800/60 shadow-lg shadow-black/30 flex flex-col ${borderClass}`}
               style={bgStyle}
             >
               {/* buttons */}
@@ -91,15 +92,36 @@ function UpcomingEventsList({ events, onDeleteEvent, onEditEvent, onLeaveEvent }
               <h4 className="font-semibold text-lg mb-3 pr-16 drop-shadow-sm">{event.title}</h4>
 
               {(event.isSharedEvent || (event.attendees && event.attendees.length > 0)) && (
-                <div className="mb-2">
+                <div className="mb-3 flex items-center gap-2">
                   <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-app-rose/20 text-app-rose border border-app-rose/30">
                     Group Event
                   </span>
+                  {event.attendees && event.attendees.length > 0 && (
+                    <div className="flex -space-x-2">
+                      {event.attendees
+                        .filter((att) => att.status !== "pending")
+                        .slice(0, 3)
+                        .map((attendee, idx) => (
+                          <div key={idx} title={attendee.name || attendee.email}>
+                            <Avatar
+                              name={attendee.name || attendee.email}
+                              photoURL={attendee.photoURL}
+                              size="sm"
+                            />
+                          </div>
+                        ))}
+                      {event.attendees.filter((att) => att.status !== "pending").length > 3 && (
+                        <div className="w-7 h-7 rounded-full bg-app-muted text-white text-[11px] font-semibold flex items-center justify-center ring-2 ring-slate-900">
+                          +{event.attendees.filter((att) => att.status !== "pending").length - 3}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 
               {/* date */}
-              <div className="flex items-center text-sm text-slate-100 mb-2">
+              <div className={`flex items-center text-sm mb-2 ${isCustomColor && isLightColor(event.color) ? "text-gray-800" : "text-slate-100"}`}>
                 <CalendarIcon className="w-4 h-4 mr-2 flex-shrink-0" />
                 <span>
                   {(() => {
@@ -111,13 +133,13 @@ function UpcomingEventsList({ events, onDeleteEvent, onEditEvent, onLeaveEvent }
               </div>
 
               {/* time */}
-              <div className="flex items-center text-sm text-slate-100 mb-2">
+              <div className={`flex items-center text-sm mb-2 ${isCustomColor && isLightColor(event.color) ? "text-gray-800" : "text-slate-100"}`}>
                 <Clock className="w-4 h-4 mr-2 flex-shrink-0" />
                 <span>{event.startTime} - {event.endTime}</span>
               </div>
 
               {/* location */}
-              <div className="flex items-center text-sm text-slate-100">
+              <div className={`flex items-center text-sm ${isCustomColor && isLightColor(event.color) ? "text-gray-800" : "text-slate-100"}`}>
                 {event.isVirtual ? (
                   <>
                     <Video className="w-4 h-4 mr-2 flex-shrink-0" />
@@ -130,10 +152,26 @@ function UpcomingEventsList({ events, onDeleteEvent, onEditEvent, onLeaveEvent }
                   </>
                 )}
               </div>
+
             </div>
           );
           })
         )}
+    </div>
+  );
+
+  if (hideContainer) {
+    return content;
+  }
+
+  return (
+    <div className="w-full lg:w-80 bg-slate-900/70 border border-slate-800 rounded-2xl shadow-2xl shadow-black/30 flex flex-col overflow-hidden h-[620px] lg:h-[825px]">
+      <h3 className="text-lg font-semibold px-4 sm:px-6 pt-4 sm:pt-6 pb-4 flex items-center text-slate-100 flex-shrink-0">
+        <CalendarIcon className="w-5 h-5 mr-2" />
+        Upcoming Events
+      </h3>
+      <div className="space-y-3 px-4 sm:px-6 pb-4 sm:pb-6 flex-1 overflow-y-auto">
+        {content}
       </div>
     </div>
   );

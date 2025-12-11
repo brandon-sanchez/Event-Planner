@@ -10,6 +10,8 @@ import {
 import { updateEvent } from "../../services/eventService";
 import { convertTo12HourFormat } from "./CalendarUtils";
 import CreatePollModal from "./CreatePollModal";
+import { Calendar as CalendarIcon, Clock, MapPin, Video } from "lucide-react";
+import Checkbox from "../Checkbox";
 
 // helper to format ISO date strings to readable form
 const fmt = (iso) => {
@@ -21,6 +23,26 @@ const fmt = (iso) => {
       hour: "2-digit",
       minute: "2-digit",
     });
+  } catch {
+    return iso;
+  }
+};
+
+// helper to format date from ISO to "Dec 11, 2025" format
+const formatDate = (iso) => {
+  try {
+    const d = new Date(iso);
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  } catch {
+    return iso;
+  }
+};
+
+// helper to format time from ISO to "9:12 PM" format
+const formatTime = (iso) => {
+  try {
+    const d = new Date(iso);
+    return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
   } catch {
     return iso;
   }
@@ -43,7 +65,7 @@ const isoToLocalInputs = (iso) => {
 
 // lists all polls for loaded events
 // lists event, time options, and allows for voting
-function PollsList({ events, refresh = 0 }) {
+function PollsList({ events, refresh = 0, hideContainer = false }) {
   const [polls, setPolls] = useState([]);
   const [votesByPoll, setVotesByPoll] = useState({});
   const [selectedByPoll, setSelectedByPoll] = useState({});
@@ -52,6 +74,8 @@ function PollsList({ events, refresh = 0 }) {
   const [editingPoll, setEditingPoll] = useState(null);
   const [editingEvent, setEditingEvent] = useState(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [pendingDeletePoll, setPendingDeletePoll] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const currentUserId = auth.currentUser?.uid || null;
 
@@ -69,23 +93,22 @@ function PollsList({ events, refresh = 0 }) {
       );
 
       try {
-        const all = [];
-
-        for (const ev of events) {
+        // Fetch all polls in parallel
+        const pollPromises = events.map(async (ev) => {
           const ownerId =
             ev.createdBy?.userId ||
             ev.createdBy?.uid ||
             ev.ownerId ||
             ev.userId ||
             null;
-          const eventKey = ev.id; // consistent with eventService
+          const eventKey = ev.id;
 
           if (!ownerId || !eventKey) {
             console.warn(
               "[PollsList] skipping event missing ownerId/eventKey",
               ev
             );
-            continue;
+            return [];
           }
 
           console.log(
@@ -95,30 +118,30 @@ function PollsList({ events, refresh = 0 }) {
             ownerId
           );
           const ps = await getEventPolls(ownerId, eventKey);
+          return (ps || []).map((p) => ({
+            ...p,
+            pollId: p.id,
+            eventId: eventKey,
+            ownerId,
+          }));
+        });
 
-          (ps || []).forEach((p) =>
-            all.push({
-              ...p,
-              pollId: p.id,
-              eventId: eventKey,
-              ownerId,
-            })
-          );
-        }
+        const pollArrays = await Promise.all(pollPromises);
+        const all = pollArrays.flat();
 
         if (!cancelled) {
           setPolls(all);
         }
 
-        const votesMap = {};
-        for (const p of all) {
+        // Fetch all votes in parallel
+        const votePromises = all.map(async (p) => {
           const pollKey = `${p.ownerId}:${p.eventId}:${p.pollId}`;
-          votesMap[pollKey] = await getPollVotes(
-            p.ownerId,
-            p.eventId,
-            p.pollId
-          );
-        }
+          const votes = await getPollVotes(p.ownerId, p.eventId, p.pollId);
+          return [pollKey, votes];
+        });
+
+        const voteEntries = await Promise.all(votePromises);
+        const votesMap = Object.fromEntries(voteEntries);
 
         if (!cancelled) {
           console.log("[PollsList] total polls loaded:", all.length);
@@ -305,24 +328,31 @@ function PollsList({ events, refresh = 0 }) {
     closeEditPoll();
   };
 
-  const handleDeletePoll = async (poll) => {
-    const confirmed = window.confirm(
-      "Delete this poll and all of its votes?"
-    );
-    if (!confirmed) return;
+  const requestDeletePoll = (poll) => {
+    setPendingDeletePoll(poll);
+  };
 
-    const success = await deletePoll(poll.ownerId, poll.eventId, poll.pollId);
+  const confirmDeletePoll = async () => {
+    if (!pendingDeletePoll) return;
+    setIsDeleting(true);
+    const { ownerId, eventId, pollId } = pendingDeletePoll;
+
+    const success = await deletePoll(ownerId, eventId, pollId);
     if (!success) {
       alert("Failed to delete poll.");
+      setIsDeleting(false);
       return;
     }
 
-    setPolls((prev) => prev.filter((p) => p.pollId !== poll.pollId));
+    setPolls((prev) => prev.filter((p) => p.pollId !== pollId));
     setVotesByPoll((prev) => {
       const copy = { ...prev };
-      delete copy[`${poll.ownerId}:${poll.eventId}:${poll.pollId}`];
+      delete copy[`${ownerId}:${eventId}:${pollId}`];
       return copy;
     });
+
+    setIsDeleting(false);
+    setPendingDeletePoll(null);
   };
 
   const toggleSelect = (pollKey, optionId) => {
@@ -418,24 +448,30 @@ function PollsList({ events, refresh = 0 }) {
   };
 
   if (loading) {
+    const loadingContent = (
+      <div className={hideContainer ? "text-slate-400" : "text-gray-400"}>Loading polls…</div>
+    );
+
+    if (hideContainer) {
+      return loadingContent;
+    }
+
     return (
       <div className="w-full lg:w-80 bg-gray-800 rounded-lg p-4 sm:p-6">
         <h3 className="text-lg font-semibold mb-4">Polls</h3>
-        <div className="text-gray-400">Loading polls…</div>
+        {loadingContent}
       </div>
     );
   }
 
   const visiblePolls = polls;
 
-  return (
-    <div className="w-full lg:w-80 bg-gray-800 rounded-lg p-4 sm:p-6">
-      <h3 className="text-lg font-semibold mb-4">Polls</h3>
-
+  const content = (
+    <>
       {visiblePolls.length === 0 ? (
-        <div className="text-gray-400 text-sm">No polls.</div>
+        <div className={hideContainer ? "text-slate-400 text-sm" : "text-gray-400 text-sm"}>No polls.</div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-6">
           {visiblePolls.map((p) => {
             const ev = events.find((e) => {
               const key = e.id;
@@ -466,24 +502,39 @@ function PollsList({ events, refresh = 0 }) {
             return (
               <div
                 key={pollKey}
-                className="rounded-md border border-gray-700 p-3"
+                className={`relative rounded-xl p-5 group border shadow-lg shadow-black/30 flex flex-col space-y-4 ${hideContainer ? "border-slate-800/60 bg-slate-800/30" : "border-gray-700 bg-gray-800/50"}`}
               >
                 <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1">
-                    <div className="font-medium">
+                  <div className="flex-1 space-y-2">
+                    <h4 className={`font-semibold text-lg ${hideContainer ? "text-slate-100" : "text-white"}`}>
                       {ev?.title || p.title || "Event"}
-                    </div>
-                    <div className="text-xs text-gray-400 mb-1">
-                      {ev?.date} • {ev?.startTime}–{ev?.endTime}{" "}
-                      {ev?.isVirtual
-                        ? "(Virtual)"
-                        : ev?.location
-                        ? `• ${ev.location}`
-                        : ""}
+                    </h4>
+
+                    <div className="space-y-1 text-sm">
+                      <div className={`flex items-center ${hideContainer ? "text-slate-200" : "text-gray-200"}`}>
+                        <CalendarIcon className="w-4 h-4 mr-2 flex-shrink-0" />
+                        <span>{ev?.date || "Date TBD"}</span>
+                      </div>
+                      <div className={`flex items-center ${hideContainer ? "text-slate-200" : "text-gray-200"}`}>
+                        <Clock className="w-4 h-4 mr-2 flex-shrink-0" />
+                        <span>{ev?.startTime} – {ev?.endTime}</span>
+                      </div>
+                      {ev && ev.isVirtual && (
+                        <div className={`flex items-center ${hideContainer ? "text-slate-200" : "text-gray-200"}`}>
+                          <Video className="w-4 h-4 mr-2 flex-shrink-0" />
+                          <span>Virtual Meeting</span>
+                        </div>
+                      )}
+                      {ev && !ev.isVirtual && ev.location && (
+                        <div className={`flex items-center ${hideContainer ? "text-slate-200" : "text-gray-200"}`}>
+                          <MapPin className="w-4 h-4 mr-2 flex-shrink-0" />
+                          <span className="truncate max-w-[16rem]">{ev.location}</span>
+                        </div>
+                      )}
                     </div>
 
                     {hasClosingAt && (
-                      <div className="text-xs text-gray-300 mb-1">
+                      <div className={`text-xs mb-1 ${hideContainer ? "text-slate-300" : "text-gray-300"}`}>
                         {isFinalized
                           ? `Poll closed at: ${closingText}`
                           : `Poll closes at: ${closingText}`}
@@ -505,26 +556,32 @@ function PollsList({ events, refresh = 0 }) {
                   </div>
 
                   {canManage && (
-                    <div className="flex gap-2">
+                    <div className="flex gap-1 flex-shrink-0">
                       <button
                         type="button"
                         onClick={() => openEditPoll(p, ev)}
-                        className="text-xs px-2 py-1 rounded-md bg-gray-700 text-white hover:bg-gray-600"
+                        className="rounded-md p-1.5 text-app-rose opacity-0 transition-opacity hover:opacity-80 hover:bg-app-rose/10 group-hover:opacity-100 focus:opacity-100 focus:outline-none"
+                        title="Edit poll"
                       >
-                        Edit
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
                       </button>
                       <button
                         type="button"
-                        onClick={() => handleDeletePoll(p)}
-                        className="text-xs px-2 py-1 rounded-md bg-red-600 text-white hover:bg-red-700"
+                        onClick={() => requestDeletePoll(p)}
+                        className="rounded-md p-1.5 text-red-400 opacity-0 transition-opacity hover:text-red-300 hover:bg-red-500/10 group-hover:opacity-100 focus:opacity-100 focus:outline-none"
+                        title="Delete poll"
                       >
-                        Delete
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
                       </button>
                     </div>
                   )}
                 </div>
 
-                <div className="space-y-2 mt-2">
+                <div className="space-y-3 mt-2">
                   {(p.options || []).map((opt) => {
                     const voters = votersFor(pollKey, opt.id);
                     const selected = (
@@ -536,21 +593,53 @@ function PollsList({ events, refresh = 0 }) {
                     return (
                       <div
                         key={opt.id}
-                        className="flex items-start gap-2 justify-between"
+                        className={`flex items-start gap-3 justify-between p-3 rounded-lg border transition-colors ${
+                          selected 
+                            ? hideContainer 
+                              ? "bg-app-rose/20 border-app-rose/30" 
+                              : "bg-blue-600/20 border-blue-600/30"
+                            : hideContainer
+                              ? "bg-slate-700/30 border-slate-700/50 hover:bg-slate-700/50"
+                              : "bg-gray-700/30 border-gray-700/50 hover:bg-gray-700/50"
+                        }`}
                       >
-                        <label className="flex items-start gap-2 flex-1">
-                          <input
-                            type="checkbox"
+                        <div className={`flex items-start gap-3 flex-1 ${isFinalized ? "opacity-60 pointer-events-none" : ""}`}>
+                          <Checkbox
+                            id={`${pollKey}-${opt.id}`}
                             checked={selected}
-                            disabled={isFinalized}
                             onChange={() => toggleSelect(pollKey, opt.id)}
-                            className="mt-1"
+                            className="pt-1"
                           />
-                          <div className="flex-1">
-                            <div className="text-sm">
-                              {fmt(opt.startISO)} — {fmt(opt.endISO)}
+                          <div className="flex-1 space-y-1">
+                            {/* Date */}
+                            <div className={`flex items-center text-sm ${hideContainer ? "text-slate-100" : "text-white"}`}>
+                              <CalendarIcon className="w-4 h-4 mr-2 flex-shrink-0" />
+                              <span className="truncate">{formatDate(opt.startISO)}</span>
                             </div>
-                            <div className="text-xs text-gray-400">
+
+                            {/* Time */}
+                            <div className={`flex items-center text-sm ${hideContainer ? "text-slate-100" : "text-white"}`}>
+                              <Clock className="w-4 h-4 mr-2 flex-shrink-0" />
+                              <span>{formatTime(opt.startISO)} - {formatTime(opt.endISO)}</span>
+                            </div>
+
+                            {/* Location if available */}
+                            {ev && !ev.isVirtual && ev.location && (
+                              <div className={`flex items-center text-sm ${hideContainer ? "text-slate-100" : "text-white"}`}>
+                                <MapPin className="w-4 h-4 mr-2 flex-shrink-0" />
+                                <span className="truncate max-w-[14rem]">{ev.location}</span>
+                              </div>
+                            )}
+
+                            {ev && ev.isVirtual && (
+                              <div className={`flex items-center text-sm ${hideContainer ? "text-slate-100" : "text-white"}`}>
+                                <Video className="w-4 h-4 mr-2 flex-shrink-0" />
+                                <span>Virtual Meeting</span>
+                              </div>
+                            )}
+
+                            {/* Votes */}
+                            <div className={`text-xs pt-1 ${hideContainer ? "text-slate-400" : "text-gray-400"}`}>
                               {voters.length === 0
                                 ? "No votes yet"
                                 : `Votes: ${voters.length} — ${voters.join(
@@ -558,13 +647,13 @@ function PollsList({ events, refresh = 0 }) {
                                   )}`}
                             </div>
                           </div>
-                        </label>
+                        </div>
 
                         {canUseThisTime && (
                           <button
                             type="button"
                             onClick={() => handleUseThisTime(p, ev, opt)}
-                            className="ml-2 text-xs px-2 py-1 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 whitespace-nowrap"
+                            className="ml-2 text-xs px-3 py-1.5 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 whitespace-nowrap transition-colors shadow-sm"
                           >
                             Use this time
                           </button>
@@ -574,11 +663,15 @@ function PollsList({ events, refresh = 0 }) {
                   })}
                 </div>
 
-                <div className="flex justify-end mt-3">
+                <div className="flex justify-end mt-4">
                   <button
                     onClick={() => submitVote(p)}
                     disabled={isFinalized}
-                    className="px-3 py-1.5 rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                    className={`px-4 py-2 rounded-lg text-white text-sm font-medium transition-all shadow-lg ${
+                      isFinalized
+                        ? "bg-slate-600 cursor-not-allowed"
+                        : "bg-app-rose hover:bg-rose-600 shadow-rose-900/40"
+                    } disabled:opacity-50 disabled:cursor-not-allowed`}
                   >
                     {isFinalized ? "Poll finalized" : "Submit Vote"}
                   </button>
@@ -599,6 +692,44 @@ function PollsList({ events, refresh = 0 }) {
           onUpdated={handlePollUpdated}
         />
       )}
+
+      {pendingDeletePoll && (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-app-card rounded-lg p-6 w-full max-w-sm shadow-2xl animate-slideUp">
+            <h3 className="text-lg font-semibold text-app-text mb-2">Delete this poll?</h3>
+            <p className="text-app-muted mb-6">
+              Are you sure you want to delete this poll and all of its votes?
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => !isDeleting && setPendingDeletePoll(null)}
+                className="px-4 py-2 rounded-md border border-app-border text-app-text hover:bg-app-border/30 disabled:opacity-70"
+                disabled={isDeleting}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDeletePoll}
+                className="px-4 py-2 rounded-md bg-red-600 text-white hover:bg-red-700 disabled:opacity-70"
+                disabled={isDeleting}
+              >
+                {isDeleting ? "Deleting..." : "Delete poll"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+
+  if (hideContainer) {
+    return content;
+  }
+
+  return (
+    <div className="w-full lg:w-80 bg-gray-800 rounded-lg p-4 sm:p-6">
+      <h3 className="text-lg font-semibold mb-4">Polls</h3>
+      {content}
     </div>
   );
 }

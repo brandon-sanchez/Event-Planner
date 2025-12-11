@@ -176,4 +176,13 @@ const expandRecurringEvents = (events, currentDate) => {
   return events.flatMap((event) => buildOccurrences(event, rangeStart, rangeEnd));
 };
 
-export {getEventsForDay, generateCalendarDays, formatMonth, convertTo12HourFormat, parseTime, convertTo24hourFormat, expandRecurringEvents};
+export {
+  getEventsForDay,
+  generateCalendarDays,
+  formatMonth,
+  convertTo12HourFormat,
+  parseTime,
+  convertTo24hourFormat,
+  formatDateToISO,
+  expandRecurringEvents
+};

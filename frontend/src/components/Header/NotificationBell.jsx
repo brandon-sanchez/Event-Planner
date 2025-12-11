@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { Bell } from "lucide-react";
 import InvitationsPanel from "./InvitationsPanel";
+import { db } from "../../config/firebase";
+import { doc, onSnapshot } from "firebase/firestore";
 
 function NotificationBell({
   invitations,
@@ -8,10 +10,61 @@ function NotificationBell({
   onInvitationDeclined,
 }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [eventDetails, setEventDetails] = useState({});
 
   const dropdownRef = useRef(null);
 
-  const invitationCount = invitations?.length || 0;
+  // Check which invitations are for events that still exist
+  useEffect(() => {
+    if (!invitations || invitations.length === 0) {
+      setEventDetails({});
+      return;
+    }
+
+    const unsubscribes = invitations.map((invitation) => {
+      if (!invitation.originalCreatorId || !invitation.originalEventId) {
+        return null;
+      }
+
+      const eventRef = doc(
+        db,
+        "users",
+        invitation.originalCreatorId,
+        "events",
+        invitation.originalEventId
+      );
+
+      return onSnapshot(
+        eventRef,
+        (snapshot) => {
+          setEventDetails((prev) => ({
+            ...prev,
+            [invitation.id]: snapshot.exists() ? snapshot.data() : null,
+          }));
+        },
+        (error) => {
+          console.log(
+            `Error fetching event for invitation ${invitation.id}:`,
+            error
+          );
+          setEventDetails((prev) => ({
+            ...prev,
+            [invitation.id]: null,
+          }));
+        }
+      );
+    });
+
+    return () => {
+      unsubscribes.forEach((unsub) => unsub && unsub());
+    };
+  }, [invitations]);
+
+  // Only count invitations where the event still exists
+  const visibleInvitations = invitations?.filter(
+    (inv) => eventDetails[inv.id] !== null
+  ) || [];
+  const invitationCount = visibleInvitations.length;
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -95,7 +148,7 @@ function NotificationBell({
             ) : (
               // Show invitations using the panel component
               <InvitationsPanel
-                invitations={invitations}
+                invitations={visibleInvitations}
                 onInvitationAccepted={handleAccepted}
                 onInvitationDeclined={handleDeclined}
                 isInDropdown={true} // Flag to adjust styling for dropdown

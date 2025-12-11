@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { X, Lock } from "lucide-react";
+import { useEffect, useState, useRef } from "react";
+import { X, Lock, Calendar as CalendarIcon, Clock } from "lucide-react";
 import { createPoll, updatePoll } from "../../services/pollService";
 import { convertTo24hourFormat } from "./CalendarUtils";
 
@@ -43,6 +43,27 @@ function CreatePollModal({
   const [options, setOptions] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState({ options: false });
+  
+  // Refs for date/time inputs
+  const closingDateRef = useRef(null);
+  const closingTimeRef = useRef(null);
+  const optionRefs = useRef(new Map());
+  
+  const focusPicker = (ref) => {
+    if (!ref?.current) return;
+    ref.current.focus();
+    if (typeof ref.current.showPicker === "function") {
+      ref.current.showPicker();
+    }
+  };
+  
+  const getOptionRef = (optionId, type) => {
+    const key = `${optionId}-${type}`;
+    if (!optionRefs.current.has(key)) {
+      optionRefs.current.set(key, { current: null });
+    }
+    return optionRefs.current.get(key);
+  };
 
   // NEW: poll closing date/time (optional)
   const [closingDate, setClosingDate] = useState("");
@@ -262,154 +283,201 @@ function CreatePollModal({
 
   return (
     <div className="fixed inset-0 backdrop-blur-md flex items-center justify-center z-50 animate-fadeIn">
-      <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl animate-slideUp">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold text-white">
-            {isEditing ? "Edit Poll" : "Create Poll"}
-          </h2>
-          <button
-            onClick={handleClose}
-            className="text-gray-400 hover:text-white"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Original event time (locked) */}
-        <div className="space-y-2 mb-4">
-          <label className="block text-sm font-medium text-gray-300">
-            Original Date &amp; Time (from event)
-          </label>
-          <div className="grid grid-cols-3 gap-2">
-            <input
-              type="date"
-              value={event?.date || ""}
-              disabled
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white opacity-70 cursor-not-allowed"
-            />
-            <input
-              type="time"
-              value={convertTo24hourFormat(event?.startTime || "") || ""}
-              disabled
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white opacity-70 cursor-not-allowed"
-            />
-            <div className="flex gap-2">
-              <input
-                type="time"
-                value={convertTo24hourFormat(event?.endTime || "") || ""}
-                disabled
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white opacity-70 cursor-not-allowed"
-              />
-              <div className="px-3 rounded-lg bg-gray-700 text-white flex items-center">
-                <Lock className="w-4 h-4 opacity-70" />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Additional date/times */}
-        <div className="space-y-3 mb-4">
-          <div className="text-sm font-medium text-gray-300">
-            Additional Date/Times
-          </div>
-
-          {options.map((o) => (
-            <div key={o.id} className="grid grid-cols-3 gap-2">
-              <input
-                type="date"
-                value={o.date}
-                onChange={(e) => updateOption(o.id, "date", e.target.value)}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white cursor-pointer"
-              />
-              <input
-                type="time"
-                value={o.start}
-                onChange={(e) => updateOption(o.id, "start", e.target.value)}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white cursor-pointer"
-              />
-              <div className="flex gap-2">
-                <input
-                  type="time"
-                  value={o.end}
-                  onChange={(e) => updateOption(o.id, "end", e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white cursor-pointer"
-                />
-                <button
-                  type="button"
-                  onClick={() => removeOption(o.id)}
-                  className="px-3 rounded-lg bg-red-600 text-white hover:bg-red-700"
-                  title="Remove option"
-                >
-                  −
-                </button>
-              </div>
-            </div>
-          ))}
-
-          <div>
+      <div className="bg-slate-900/95 border border-slate-700 rounded-3xl w-full max-w-2xl shadow-2xl shadow-black/40 animate-slideUp overflow-hidden">
+        <div className="p-6 max-h-[90vh] overflow-y-auto">
+          <style>{`
+            .picker-hidden::-webkit-calendar-picker-indicator { opacity: 0; display: none; }
+            .picker-hidden::-webkit-inner-spin-button { display: none; }
+            .picker-hidden::-webkit-clear-button { display: none; }
+            .picker-hidden { appearance: none; -moz-appearance: textfield; }
+          `}</style>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold text-slate-100">
+              {isEditing ? "Edit Poll" : "Create Poll"}
+            </h2>
             <button
-              type="button"
-              onClick={addOption}
-              className="px-3 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600"
+              onClick={handleClose}
+              className="text-slate-400 hover:text-slate-100 transition-colors"
             >
-              + Add another time
+              <X className="w-5 h-5" />
             </button>
           </div>
 
-          {error.options && (
-            <p className="text-sm text-red-400">
-              Add at least one complete additional option or ensure the
-              original time is valid.
-            </p>
-          )}
-        </div>
-
-        {/* NEW: Poll closing time */}
-        <div className="space-y-2 mb-4">
-          <label className="block text-sm font-medium text-gray-300">
-            Poll closing time (optional)
-          </label>
-          <div className="grid grid-cols-2 gap-2">
-            <input
-              type="date"
-              value={closingDate}
-              onChange={(e) => setClosingDate(e.target.value)}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white cursor-pointer"
-            />
-            <input
-              type="time"
-              value={closingTime}
-              onChange={(e) => setClosingTime(e.target.value)}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white cursor-pointer"
-            />
+          {/* Original event time (locked) */}
+          <div className="space-y-2 mb-4">
+            <label className="block text-sm font-medium text-app-text">
+              Original Date &amp; Time (from event)
+            </label>
+            <div className="grid grid-cols-3 gap-2">
+              <div className="relative">
+                <CalendarIcon className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-white pointer-events-none opacity-70" />
+                <input
+                  type="date"
+                  value={event?.date || ""}
+                  disabled
+                  className="picker-hidden w-full pl-9 pr-3 py-2 bg-app-bg border border-app-border rounded-lg text-app-text opacity-70 cursor-not-allowed"
+                />
+              </div>
+              <div className="relative">
+                <Clock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-white pointer-events-none opacity-70" />
+                <input
+                  type="time"
+                  value={convertTo24hourFormat(event?.startTime || "") || ""}
+                  disabled
+                  className="picker-hidden w-full pl-9 pr-3 py-2 bg-app-bg border border-app-border rounded-lg text-app-text opacity-70 cursor-not-allowed"
+                />
+              </div>
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Clock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-white pointer-events-none opacity-70" />
+                  <input
+                    type="time"
+                    value={convertTo24hourFormat(event?.endTime || "") || ""}
+                    disabled
+                    className="picker-hidden w-full pl-9 pr-3 py-2 bg-app-bg border border-app-border rounded-lg text-app-text opacity-70 cursor-not-allowed"
+                  />
+                </div>
+                <div className="px-3 rounded-lg bg-app-bg border border-app-border text-app-text flex items-center">
+                  <Lock className="w-4 h-4 opacity-70" />
+                </div>
+              </div>
+            </div>
           </div>
-          <p className="text-xs text-gray-400">
-            If set, the poll will automatically close at this time and choose
-            the time option with the most votes (ties broken by earliest start
-            time).
-          </p>
-        </div>
 
-        <div className="flex justify-end space-x-3 pt-4">
-          <button
-            onClick={handleClose}
-            className="px-4 py-2 text-gray-300 hover:text-white"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleCreatePoll}
-            disabled={submitting}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-          >
-            {submitting
-              ? isEditing
-                ? "Saving..."
-                : "Creating..."
-              : isEditing
-              ? "Save Changes"
-              : "Create Poll"}
-          </button>
+          {/* Additional date/times */}
+          <div className="space-y-3 mb-4">
+            <div className="text-sm font-medium text-app-text">
+              Additional Date/Times
+            </div>
+
+            {options.map((o) => {
+              const dateRef = getOptionRef(o.id, "date");
+              const startRef = getOptionRef(o.id, "start");
+              const endRef = getOptionRef(o.id, "end");
+              
+              return (
+                <div key={o.id} className="grid grid-cols-3 gap-2">
+                  <div className="relative" onClick={() => focusPicker(dateRef)}>
+                    <CalendarIcon className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-white pointer-events-none" />
+                    <input
+                      ref={dateRef}
+                      type="date"
+                      value={o.date}
+                      onChange={(e) => updateOption(o.id, "date", e.target.value)}
+                      className="picker-hidden w-full pl-9 pr-3 py-2 bg-app-bg border border-app-border rounded-lg text-app-text cursor-pointer focus:outline-none focus:border-app-rose focus:ring-2 focus:ring-app-rose/30"
+                    />
+                  </div>
+                  <div className="relative" onClick={() => focusPicker(startRef)}>
+                    <Clock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-white pointer-events-none" />
+                    <input
+                      ref={startRef}
+                      type="time"
+                      value={o.start}
+                      onChange={(e) => updateOption(o.id, "start", e.target.value)}
+                      className="picker-hidden w-full pl-9 pr-3 py-2 bg-app-bg border border-app-border rounded-lg text-app-text cursor-pointer focus:outline-none focus:border-app-rose focus:ring-2 focus:ring-app-rose/30"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <div className="relative flex-1" onClick={() => focusPicker(endRef)}>
+                      <Clock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-white pointer-events-none" />
+                      <input
+                        ref={endRef}
+                        type="time"
+                        value={o.end}
+                        onChange={(e) => updateOption(o.id, "end", e.target.value)}
+                        className="picker-hidden w-full pl-9 pr-3 py-2 bg-app-bg border border-app-border rounded-lg text-app-text cursor-pointer focus:outline-none focus:border-app-rose focus:ring-2 focus:ring-app-rose/30"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeOption(o.id)}
+                      className="px-3 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors"
+                      title="Remove option"
+                    >
+                      −
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+
+            <div>
+              <button
+                type="button"
+                onClick={addOption}
+                className="px-3 py-2 bg-app-bg border border-app-border text-app-text rounded-lg hover:bg-app-card transition-colors"
+              >
+                + Add another time
+              </button>
+            </div>
+
+            {error.options && (
+              <p className="text-sm text-red-400">
+                Add at least one complete additional option or ensure the
+                original time is valid.
+              </p>
+            )}
+          </div>
+
+          {/* NEW: Poll closing time */}
+          <div className="space-y-2 mb-4">
+            <label className="block text-sm font-medium text-app-text">
+              Poll closing time (optional)
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="relative" onClick={() => focusPicker(closingDateRef)}>
+                <CalendarIcon className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-white pointer-events-none" />
+                <input
+                  ref={closingDateRef}
+                  type="date"
+                  value={closingDate}
+                  onChange={(e) => setClosingDate(e.target.value)}
+                  className="picker-hidden w-full pl-9 pr-3 py-2 bg-app-bg border border-app-border rounded-lg text-app-text cursor-pointer focus:outline-none focus:border-app-rose focus:ring-2 focus:ring-app-rose/30"
+                />
+              </div>
+              <div className="relative" onClick={() => focusPicker(closingTimeRef)}>
+                <Clock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-white pointer-events-none" />
+                <input
+                  ref={closingTimeRef}
+                  type="time"
+                  value={closingTime}
+                  onChange={(e) => setClosingTime(e.target.value)}
+                  className="picker-hidden w-full pl-9 pr-3 py-2 bg-app-bg border border-app-border rounded-lg text-app-text cursor-pointer focus:outline-none focus:border-app-rose focus:ring-2 focus:ring-app-rose/30"
+                />
+              </div>
+            </div>
+            <p className="text-xs text-app-muted">
+              If set, the poll will automatically close at this time and choose
+              the time option with the most votes (ties broken by earliest start
+              time).
+            </p>
+          </div>
+
+          <div className="flex justify-end space-x-3 pt-4">
+            <button
+              onClick={handleClose}
+              className="px-4 py-2 text-slate-400 hover:text-slate-100 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleCreatePoll}
+              disabled={submitting}
+              className={`px-6 py-2 text-white rounded-xl shadow-lg transition-all ${
+                submitting
+                  ? "bg-slate-600 cursor-not-allowed"
+                  : "bg-rose-500 hover:bg-rose-600 shadow-rose-900/40"
+              }`}
+            >
+              {submitting
+                ? isEditing
+                  ? "Saving..."
+                  : "Creating..."
+                : isEditing
+                ? "Save Changes"
+                : "Create Poll"}
+            </button>
+          </div>
         </div>
       </div>
     </div>

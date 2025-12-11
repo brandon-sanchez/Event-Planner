@@ -35,6 +35,44 @@ function Calendar() {
 
   const currentUser = getCurrentUser(auth);
 
+  const normalizeAttendees = (attendees = [], includeCreator = false) => {
+    const creatorId = auth.currentUser?.uid;
+    const creatorEmail = auth.currentUser?.email?.toLowerCase();
+
+    const normalized = attendees.map((att) => {
+      const emailLower = att.email?.toLowerCase();
+      const isCreator =
+        (creatorId && att.userId === creatorId) ||
+        (creatorEmail && emailLower === creatorEmail);
+
+      return {
+        ...att,
+        userId: att.userId || (isCreator ? creatorId : att.userId),
+        status: att.status || (isCreator ? "accepted" : "pending"),
+      };
+    });
+
+    // just want to always ensure that the creator is present for group events
+    if (includeCreator && creatorId && creatorEmail) {
+      const alreadyHasCreator = normalized.some(
+        (att) =>
+          att.userId === creatorId ||
+          (att.email && att.email.toLowerCase() === creatorEmail)
+      );
+
+      if (!alreadyHasCreator) {
+        normalized.unshift({
+          ...currentUser,
+          userId: creatorId,
+          email: currentUser.email,
+          status: "accepted",
+        });
+      }
+    }
+
+    return normalized;
+  };
+
   // listen for auth changes and fetch user's events
   // Added state for poll logic
   const [pollRefresh, setPollRefresh] = useState(0);
@@ -149,7 +187,8 @@ function Calendar() {
         startTime: convertTo12HourFormat(newEvent.startTime),
         endTime: convertTo12HourFormat(newEvent.endTime),
         attendees: newEvent.isGroupEvent
-        ? [currentUser, ...newEvent.attendees] : []
+          ? normalizeAttendees(newEvent.attendees, true)
+          : []
       };
 
       const createdEvent = await createEvent(eventToAdd);
@@ -217,6 +256,8 @@ function Calendar() {
 
     setIsLeavingEvent(false);
     setPendingLeaveEventId(null);
+    setShowCreateModal(false);
+    setEditingEvent(null);
   };
 
   const handleEditEvent = (event) => {
@@ -233,7 +274,9 @@ function Calendar() {
         ...updatedEventData,
         startTime: convertTo12HourFormat(updatedEventData.startTime),
         endTime: convertTo12HourFormat(updatedEventData.endTime),
-        attendees: updatedEventData.isGroupEvent ? updatedEventData.attendees : []
+      attendees: updatedEventData.isGroupEvent
+        ? normalizeAttendees(updatedEventData.attendees, true)
+        : []
       };
 
       await updateEvent(eventId, eventToUpdate);
@@ -301,46 +344,46 @@ function Calendar() {
           />
         </div>
 
-         <div className="w-full xl:w-96 shrink-0">
-            <div className="bg-app-card rounded-xl p-4 h-full flex flex-col">
-              {/* Tabs header */}
-              <div className="flex mb-4 border-b border-app-border">
-                <button
-                  onClick={() => setActiveTab("upcoming")}
-                  className={`px-3 py-2 text-sm font-medium border-b-2 transition-colors ${
-                    activeTab === "upcoming"
-                      ? "border-rose-500 text-white"
-                      : "border-transparent text-app-muted hover:text-app-text"
-                  }`}
-                >
-                  Upcoming
-                </button>
-                <button
-                  onClick={() => setActiveTab("polls")}
-                  className={`ml-4 px-3 py-2 text-sm font-medium border-b-2 transition-colors ${
-                    activeTab === "polls"
-                      ? "border-rose-500 text-white"
-                      : "border-transparent text-app-muted hover:text-app-text"
-                  }`}
-                >
-                  Polls
-                </button>
-              </div>
+        <div className="w-full lg:w-[26rem] xl:w-[28rem] bg-slate-900/70 border border-slate-800 rounded-2xl shadow-2xl shadow-black/30 flex flex-col overflow-hidden h-[620px] lg:h-[825px] shrink-0">
+          <div className="px-4 sm:px-6 pt-4 sm:pt-6 pb-4 flex-shrink-0">
+            <div className="flex bg-app-bg border border-app-border rounded-lg p-1">
+              <button
+                className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-md text-xs font-medium transition-all duration-200 ${
+                  activeTab === "upcoming"
+                    ? "bg-app-rose text-app-text shadow-sm"
+                    : "text-app-muted hover:text-app-text hover:bg-app-card"
+                }`}
+                onClick={() => setActiveTab("upcoming")}
+              >
+                Upcoming Events
+              </button>
 
-              {/* Tab content */}
-              <div className="flex-1 min-h-0 max-h-[70vh] overflow-y-auto overflow-x-hidden pr-2">
-                {activeTab === "upcoming" ? (
-                  <UpcomingEventsList
-                    events={expandedEvents}
-                    onDeleteEvent={handleDeleteEvent}
-                    onLeaveEvent={handleLeaveEvent}
-                    onEditEvent={handleEditEvent}
-                  />
-                ) : (
-                  <PollsList events={expandedEvents} refresh={pollRefresh} />
-                )}
-              </div>
+              <button
+                className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-md text-xs font-medium transition-all duration-200 ${
+                  activeTab === "polls"
+                    ? "bg-app-rose text-app-text shadow-sm"
+                    : "text-app-muted hover:text-app-text hover:bg-app-card"
+                }`}
+                onClick={() => setActiveTab("polls")}
+              >
+                Polls
+              </button>
             </div>
+          </div>
+
+          <div className="flex-1 overflow-y-auto px-4 sm:px-6 pb-4 sm:pb-6">
+            {activeTab === "upcoming" ? (
+              <UpcomingEventsList
+                events={expandedEvents}
+                onDeleteEvent={handleDeleteEvent}
+                onLeaveEvent={handleLeaveEvent}
+                onEditEvent={handleEditEvent}
+                hideContainer={true}
+              />
+            ) : (
+              <PollsList events={expandedEvents} refresh={pollRefresh} hideContainer={true} />
+            )}
+          </div>
         </div>
       </div>
 
@@ -360,7 +403,7 @@ function Calendar() {
       {/* Modal logic below */}
 
       {pendingDeleteEventId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fadeIn">
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fadeIn">
           <div className="bg-app-card rounded-lg p-6 w-full max-w-sm shadow-2xl animate-slideUp">
             <h3 className="text-lg font-semibold text-app-text mb-2">Delete this event?</h3>
             <p className="text-app-muted mb-6">
@@ -387,7 +430,7 @@ function Calendar() {
       )}
 
       {pendingLeaveEventId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fadeIn">
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fadeIn">
           <div className="bg-app-card rounded-lg p-6 w-full max-w-sm shadow-2xl animate-slideUp">
             <h3 className="text-lg font-semibold text-app-text mb-2">Leave this event?</h3>
             <p className="text-app-muted mb-6">
@@ -434,6 +477,17 @@ function Calendar() {
           setPollRefresh((n) => n + 1);
         }}
       />
+        <EventModal
+          isOpen={showCreateModal}
+          onClose={() => {
+            setShowCreateModal(false);
+            setEditingEvent(null);
+          }}
+          onCreateEvent={handleCreateEvent}
+          editEvent={editingEvent}
+          onUpdateEvent={handleUpdateEvent}
+          onRequestLeave={handleLeaveEvent}
+        />
     </div>
   );
 }

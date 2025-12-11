@@ -14,10 +14,6 @@ const getCurrentUserId = () => {
   return checkAuth().uid;
 };
 
-const isAuthenticated = () => {
-  return auth.currentUser != null;
-};
-
 const getInitials = (name) => {
   if (!name) return "U";
   return name
@@ -88,4 +84,24 @@ const formatDate = (dateString) => {
   return `${month}/${day}/${year}`;
 };
 
-export {  checkAuth, isAuthenticated, getCurrentUserId, getInitials, getCurrentUser, getColorClasses, formatDate };
+// Check if a color is light or dark to determine appropriate text color
+const isLightColor = (color) => {
+  if (!color || !color.startsWith("#")) {
+    // For non-custom colors, assume they're dark enough for light text
+    return false;
+  }
+
+  // Convert hex to RGB
+  const hex = color.replace("#", "");
+  const r = parseInt(hex.substring(0, 2), 16);
+  const g = parseInt(hex.substring(2, 4), 16);
+  const b = parseInt(hex.substring(4, 6), 16);
+
+  // Calculate relative luminance using WCAG formula
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+
+  // If luminance is greater than 0.5, it's a light color
+  return luminance > 0.5;
+};
+
+export {  checkAuth, getCurrentUserId, getInitials, getCurrentUser, getColorClasses, formatDate, isLightColor };
