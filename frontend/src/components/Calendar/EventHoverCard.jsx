@@ -59,7 +59,7 @@ function EventHoverCard({
           </button>
 
           {/* added: create poll button */}
-          {onCreatePoll && (
+          {onCreatePoll && event?.isGroupEvent &&(
             <button
               onClick={() => onCreatePoll(event)}
               className="inline-flex items-center rounded-md px-2 py-1 text-sm bg-blue-600/90 hover:bg-blue-600 text-white"
