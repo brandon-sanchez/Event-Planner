@@ -294,9 +294,9 @@ function Calendar() {
 
   // Added: functions for poll creation
   const openCreatePoll = (event) => {
-    if(!event?.isGroupEvent) return;
+    if (!event?.isGroupEvent) return;   // ignore non-group events
     setPollForEvent(event);
-  }
+  };
   const closeCreatePoll = () => setPollForEvent(null);
 
   const navigateMonth = (direction) => {

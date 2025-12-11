@@ -65,7 +65,7 @@ function EventHoverCard({
 
         <div className="flex gap-2 flex-shrink-0">
           {/* added: create poll button */}
-          {onCreatePoll && event?.isGroupEvent && (
+          {onCreatePoll && event?.isGroupEvent &&(
             <button
               onClick={() => onCreatePoll(event)}
               className={`inline-flex items-center rounded-md px-2 py-1 text-sm ${isLight ? "bg-blue-600 hover:bg-blue-700" : "bg-blue-600/90 hover:bg-blue-600"} text-white`}
