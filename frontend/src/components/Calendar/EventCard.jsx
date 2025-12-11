@@ -11,7 +11,7 @@ function EventCard({ event, onMouseEnter, onMouseLeave }) {
     <div
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
-      className={`text-xs px-2 py-1 rounded cursor-pointer ${bgClass} hover:opacity-80`}
+      className={`text-xs px-2 py-1 rounded cursor-pointer ${bgClass} text-white/90 shadow-md shadow-black/30 ring-1 ring-white/5 hover:ring-2 hover:ring-white/20 transition`}
       style={bgStyle}
     >
       <div className="flex items-center gap-1 mb-1">

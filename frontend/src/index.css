@@ -9,6 +9,38 @@
   --color-app-muted: #9E9EA6;
 }
 
+/* did this to remove the overscolling white space that was occuring when I would overscroll on a page */
+html, body {
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Custom scrollbar styling - rose theme */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(244, 63, 94) rgb(30, 41, 59);
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: rgb(30, 41, 59);
+  border-radius: 4px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: rgb(244, 63, 94);
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: rgb(225, 29, 72);
+}
+
 @layer utilities {
   @keyframes fadeIn {
     from {
@@ -37,4 +69,41 @@
   .animate-slideUp {
     animation: slideUp 0.3s ease-out;
   }
+}
+
+/* Override social login button hover lightening */
+.provider-btn {
+  width: 100% !important;
+  font-size: 14px !important;
+  border-radius: 10px !important;
+  padding: 10px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: #e2e8f0 !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35) !important;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, background-color 0.12s ease !important;
+  filter: none !important;
+}
+
+.provider-btn.google {
+  background-color: #1f2937 !important;
+  border: 1px solid #334155 !important;
+}
+
+.provider-btn.github {
+  background-color: #0f172a !important;
+  border: 1px solid #1e293b !important;
+}
+
+.provider-btn:hover,
+.provider-btn:focus {
+  filter: none !important;
+  transform: translateY(-1px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45) !important;
+}
+
+.provider-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 9px 24px rgba(0, 0, 0, 0.35) !important;
 }

@@ -53,14 +53,14 @@ function NotificationBell({
       {/* Bell Icon Button */}
       <button
         onClick={toggleDropdown}
-        className="relative p-2 text-app-muted hover:text-app-text hover:bg-app-bg rounded-lg transition-colors"
+        className="relative p-2 text-slate-400 hover:text-slate-100 hover:bg-slate-800/50 rounded-lg transition-colors"
         aria-label="Notifications"
       >
         <Bell className="w-5 h-5" />
 
         {/* Badge Count - Only show if there are invitations */}
         {invitationCount > 0 && (
-          <span className="absolute -top-1 -right-1 bg-app-rose text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
+          <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center shadow-lg shadow-rose-900/40 animate-pulse">
             {invitationCount > 9 ? "9+" : invitationCount}
           </span>
         )}
@@ -68,13 +68,13 @@ function NotificationBell({
 
       {/* Dropdown Panel */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-96 max-h-[80vh] overflow-y-auto bg-app-card rounded-lg shadow-2xl border border-app-border z-50 animate-fadeIn">
+        <div className="absolute right-0 mt-2 w-96 max-h-[80vh] overflow-y-auto bg-slate-900/95 backdrop-blur-xl rounded-2xl shadow-2xl shadow-black/40 border border-slate-700 z-50 animate-fadeIn">
           {/* Dropdown Header */}
-          <div className="sticky top-0 bg-app-card border-b border-app-border px-4 py-3 z-10">
-            <h3 className="text-lg font-semibold text-app-text flex items-center justify-between">
+          <div className="sticky top-0 bg-slate-950/98 backdrop-blur-xl border-b border-slate-700 px-4 py-3 z-10 rounded-t-2xl">
+            <h3 className="text-lg font-semibold text-slate-100 flex items-center justify-between">
               <span>📬 Invitations</span>
               {invitationCount > 0 && (
-                <span className="text-sm text-app-muted">
+                <span className="text-sm text-slate-400">
                   {invitationCount} pending
                 </span>
               )}
@@ -86,9 +86,9 @@ function NotificationBell({
             {invitationCount === 0 ? (
               // Empty state
               <div className="text-center py-8">
-                <Bell className="w-12 h-12 text-app-muted mx-auto mb-3 opacity-50" />
-                <p className="text-app-muted text-sm">No pending invitations</p>
-                <p className="text-app-muted text-xs mt-1 opacity-70">
+                <Bell className="w-12 h-12 text-slate-400 mx-auto mb-3" />
+                <p className="text-slate-200 text-sm font-medium">No pending invitations</p>
+                <p className="text-slate-400 text-xs mt-1">
                   When someone invites you to an event, it will appear here
                 </p>
               </div>

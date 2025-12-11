@@ -34,6 +34,7 @@ function Calendar() {
 
   const currentUser = getCurrentUser(auth);
 
+  // listen for auth changes and fetch user's events
   // Added state for poll logic
   const [pollRefresh, setPollRefresh] = useState(0);
   const [pollForEvent, setPollForEvent] = useState(null);
@@ -58,14 +59,10 @@ function Calendar() {
       eventsUnsub = onSnapshot(
         eventsRef,
         (querySnapshot) => {
-          const fetchedEvents = [];
-
-          querySnapshot.forEach((doc) => {
-            fetchedEvents.push({
-              id: doc.id,
-              ...doc.data(),
-            });
-          });
+          const fetchedEvents = querySnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+          }));
 
           setEvents(fetchedEvents);
           setIsLoading(false);
@@ -96,7 +93,7 @@ function Calendar() {
 
     const rect = e.currentTarget.getBoundingClientRect();
     const padding = 12;
-    const fallbackHeight = Math.max(120, window.innerHeight - padding * 2);
+    const fallbackHeight = 320; // keep initial position near the hovered event
     const desiredCenterY = rect.top + rect.height / 2;
 
     setHoverAnchor({ top: rect.top, right: rect.right, height: rect.height });
@@ -124,6 +121,7 @@ function Calendar() {
     setIsHoverCardFading(false);
   };
 
+  // recalculate hover card position once we know its actual height
   useEffect(() => {
     if (!hoveredEvent || !hoverAnchor || !hoverCardRef.current) return;
 
@@ -157,37 +155,37 @@ function Calendar() {
       setEvents([...events, createdEvent]);
       setShowCreateModal(false);
 
+      console.log('Event created successfully:');
       return createdEvent;
     } catch (error) {
-      console.log("Error creating event:", error);
+      console.log('Error creating event:', error);
       throw error;
     }
+    
   };
 
-  // Delete modal logic (from main)
   const handleDeleteEvent = async (eventId) => {
-    setPendingLeaveEventId(null);
-    setPendingDeleteEventId(eventId);
+      setPendingLeaveEventId(null);
+      setPendingDeleteEventId(eventId);
   };
 
   const confirmDeleteEvent = async () => {
-    if (!pendingDeleteEventId) return;
-    setIsDeletingEvent(true);
+      if (!pendingDeleteEventId) return;
+      setIsDeletingEvent(true);
+      const prev = events;
+      setEvents(curr => curr.filter(e => e.id !== pendingDeleteEventId));
 
-    const prev = events;
-    setEvents(curr => curr.filter(e => e.id !== pendingDeleteEventId));
-
-    try {
-      await deleteEvent(pendingDeleteEventId);
-    } catch (err) {
-      console.error("Failed to delete event:", err);
-      setEvents(prev);
-    }
-
-    setIsDeletingEvent(false);
-    setPendingDeleteEventId(null);
+      try {
+          await deleteEvent(pendingDeleteEventId);
+      } catch (err) {
+          console.error('Failed to delete event:', err);
+          setEvents(prev);
+      }
+      setIsDeletingEvent(false);
+      setPendingDeleteEventId(null);
   };
 
+  
   const handleLeaveEvent = async (eventId) => {
     setPendingDeleteEventId(null);
     setPendingLeaveEventId(eventId);
@@ -197,14 +195,17 @@ function Calendar() {
     if (!pendingLeaveEventId) return;
     setIsLeavingEvent(true);
 
+    // hold previous events in case of error
     let previousEvents = null;
     setEvents((curr) => {
       previousEvents = curr;
       return curr.filter((e) => e.id !== pendingLeaveEventId);
     });
 
+    // try to leave event
     try {
       await leaveEvent(pendingLeaveEventId);
+      console.log('Successfully left event');
     } catch (err) {
       console.error("Failed to leave event:", err);
       alert("Failed to leave event.");
@@ -218,6 +219,7 @@ function Calendar() {
   };
 
   const handleEditEvent = (event) => {
+    // for recurring events need to find the base event not the occurrence
     const baseId = event?.seriesId || event?.id;
     const baseEvent = events.find((e) => e.id === baseId) || event;
     setEditingEvent(baseEvent);
@@ -242,7 +244,7 @@ function Calendar() {
       setShowCreateModal(false);
       setEditingEvent(null);
     } catch (error) {
-      console.log("Error updating event:", error);
+      console.log('Error updating event:', error);
     }
   };
 
@@ -262,12 +264,13 @@ function Calendar() {
     setCurrentDate(new Date());
   };
 
+  // turns recurring events into individual occurrences for the current month
   const expandedEvents = useMemo(
     () => expandRecurringEvents(events, currentDate),
     [events, currentDate]
   );
 
-  if (isLoading) {
+  if(isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="text-white text-xl">Loading events...</div>
@@ -277,7 +280,7 @@ function Calendar() {
 
   return (
     <div>
-      <div className="flex flex-col lg:flex-row gap-6">
+      <div className="flex flex-col lg:flex-row gap-6 items-stretch">
         <div className="flex-1">
           <CalendarHeader
             currentDate={currentDate}

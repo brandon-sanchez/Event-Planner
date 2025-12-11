@@ -15,12 +15,12 @@ function CalendarGrid({
     today.getFullYear() === currentDate.getFullYear();
 
   return (
-    <div className="bg-app-card rounded-lg overflow-hidden overflow-x-auto">
-      <div className="grid grid-cols-7 bg-app-card min-w-[280px]">
+    <div className="bg-slate-900/70 border border-slate-800 rounded-2xl overflow-hidden overflow-x-auto shadow-2xl shadow-black/30 backdrop-blur">
+      <div className="grid grid-cols-7 bg-slate-900/80 min-w-[280px]">
         {weekDays.map((day) => (
           <div
             key={day}
-            className="px-2 sm:px-4 py-3 text-center text-xs sm:text-sm font-medium text-app-muted"
+            className="px-2 sm:px-4 py-3 text-center text-xs sm:text-sm font-medium text-slate-400 tracking-wide"
           >
             <span className="hidden sm:inline">{day}</span>
             <span className="sm:hidden">{day.slice(0, 1)}</span>
@@ -37,8 +37,8 @@ function CalendarGrid({
           return (
             <div
               key={index}
-              className={`min-h-[80px] sm:min-h-[120px] px-1 sm:px-2 py-2 border border-app-border ${
-                !dayInfo.isCurrentMonth ? "bg-app-bg opacity-40" : ""
+              className={`min-h-[80px] sm:min-h-[120px] px-1 sm:px-2 py-2 border border-slate-800 transition-colors ${
+                !dayInfo.isCurrentMonth ? "bg-slate-900/40 text-slate-600" : "hover:bg-slate-900/60"
               }`}
             >
               {dayInfo.day && (
@@ -47,8 +47,8 @@ function CalendarGrid({
                     <span
                       className={`inline-flex items-center justify-center ${
                         isToday
-                          ? "w-6 h-6 rounded-full bg-app-rose text-white font-bold"
-                          : "text-app-muted"
+                          ? "w-6 h-6 rounded-full bg-rose-500 text-white font-bold shadow-lg shadow-rose-900/40"
+                          : "text-slate-400"
                       }`}
                     >
                       {dayInfo.day}

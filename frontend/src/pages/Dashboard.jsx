@@ -12,9 +12,7 @@ function Dashboard() {
   useEffect(() => {
     try {
       const userId = getCurrentUserId();
-
       const invitationRef = collection(db, 'users', userId, 'invitations');
-
       const q = query(invitationRef, where('status', '==', 'pending'));
 
       const unsubscribe = onSnapshot(q, (querySnapshot) => {
@@ -40,13 +38,16 @@ function Dashboard() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-app-bg text-app-text">
-      <Header
-        invitations={invitations}
-      />
-      <main className="container mx-auto px-6 py-8">
-        <Calendar />
-      </main>
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 text-slate-100 relative">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(244,114,182,0.12),transparent_30%),radial-gradient(circle_at_80%_0%,rgba(244,63,94,0.12),transparent_25%)] pointer-events-none" />
+      <div className="relative">
+        <Header invitations={invitations} />
+        <main className="container mx-auto px-4 sm:px-6 lg:px-10 py-8">
+          <div className="bg-slate-900/60 border border-slate-800 rounded-3xl shadow-2xl shadow-black/40 p-4 sm:p-6">
+            <Calendar />
+          </div>
+        </main>
+      </div>
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import {Clock, Loader2} from "lucide-react";
+import {Loader2} from "lucide-react";
 
 const GoogleMapEmbed = ({ address, className = "" }) => {
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;

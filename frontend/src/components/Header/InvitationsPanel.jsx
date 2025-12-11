@@ -108,11 +108,11 @@ function InvitationsPanel({
   //user doesn't have any invitations
   if (!visibleInvitations || visibleInvitations.length === 0) {
     return (
-      <div className="bg-app-card rounded-lg p-6 border border-app-border">
-        <h3 className="text-lg font-semibold text-app-text mb-3">
+      <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 shadow-2xl shadow-black/40">
+        <h3 className="text-lg font-semibold text-slate-100 mb-3">
           Pending Invitations
         </h3>
-        <p className="text-app-muted text-sm">
+        <p className="text-slate-400 text-sm">
           No pending invitations. When someone invites you to an event, it will
           appear here!
         </p>
@@ -123,11 +123,11 @@ function InvitationsPanel({
   return (
     <div
       className={
-        isInDropdown ? "" : "bg-app-card rounded-lg p-6 border border-app-border"
+        isInDropdown ? "" : "bg-slate-900/60 border border-slate-800 rounded-3xl p-6 shadow-2xl shadow-black/40"
       }
     >
       {!isInDropdown && (
-        <h3 className="text-lg font-semibold text-app-text mb-4">
+        <h3 className="text-lg font-semibold text-slate-100 mb-4">
           📬 Pending Invitations ({visibleInvitations.length})
         </h3>
       )}
@@ -141,7 +141,7 @@ function InvitationsPanel({
           return (
             <div
               key={invitation.id}
-              className={`bg-app-bg rounded-lg p-3 border border-app-border hover:border-app-muted transition-colors ${
+              className={`bg-slate-900/80 rounded-xl p-3 border border-slate-700 hover:border-slate-600 transition-colors shadow-lg shadow-black/20 ${
                 isInDropdown ? "text-sm" : ""
               }`}
             >
@@ -153,11 +153,11 @@ function InvitationsPanel({
                   />
                   <div>
                     <h4
-                      className={`text-app-text font-semibold ${isInDropdown ? "text-sm" : ""}`}
+                      className={`text-slate-100 font-semibold ${isInDropdown ? "text-sm" : ""}`}
                     >
                       {event?.title || "Event details unavailable"}
                     </h4>
-                    <p className="text-xs text-app-muted flex items-center space-x-1 mt-1">
+                    <p className="text-xs text-slate-400 flex items-center space-x-1 mt-1">
                       <User className="w-3 h-3" />
                       <span>by {inviter.displayName || inviter.email}</span>
                     </p>
@@ -169,8 +169,8 @@ function InvitationsPanel({
               <div className="space-y-1 mb-3 ml-3">
                 {/* Date */}
                 {event?.date && (
-                  <div className="flex items-center space-x-2 text-xs text-app-text">
-                    <Calendar className="w-3 h-3 text-app-muted" />
+                  <div className="flex items-center space-x-2 text-xs text-slate-200">
+                    <Calendar className="w-3 h-3 text-slate-400" />
                     <span>
                       {formatDate(event.date)}
                     </span>
@@ -179,8 +179,8 @@ function InvitationsPanel({
 
                 {/* time */}
                 {(event?.startTime || event?.endTime) && (
-                  <div className="flex items-center space-x-2 text-xs text-app-text">
-                    <Clock className="w-3 h-3 text-app-muted" />
+                  <div className="flex items-center space-x-2 text-xs text-slate-200">
+                    <Clock className="w-3 h-3 text-slate-400" />
                     <span>
                       {event?.startTime}
                       {event?.endTime && ` - ${event.endTime}`}
@@ -190,20 +190,20 @@ function InvitationsPanel({
 
                 {/* location or virtual */}
                 {event?.isVirtual ? (
-                  <span className="inline-block text-xs bg-app-rose text-white px-2 py-0.5 rounded">
+                  <span className="inline-block text-xs bg-rose-500 text-white px-2 py-0.5 rounded">
                     Virtual
                   </span>
                 ) : (
                   event?.location && (
-                    <div className="flex items-center space-x-2 text-xs text-app-text">
-                      <MapPin className="w-3 h-3 text-app-muted" />
+                    <div className="flex items-center space-x-2 text-xs text-slate-200">
+                      <MapPin className="w-3 h-3 text-slate-400" />
                       <span className="truncate">{event.location}</span>
                     </div>
                   )
                 )}
 
                 {!event && (
-                  <p className="text-xs text-app-muted">
+                  <p className="text-xs text-slate-400">
                     Event may have been deleted or is no longer accessible.
                   </p>
                 )}
