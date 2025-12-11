@@ -160,6 +160,23 @@ function PollsList({ events, refresh = 0, hideContainer = false }) {
     };
   }, [events, refresh]);
 
+  // Preselect checkboxes based on the current user's saved vote
+  useEffect(() => {
+    if (!currentUserId) return;
+    const nextSelected = {};
+
+    Object.entries(votesByPoll).forEach(([pollKey, votes]) => {
+      const myVote = (votes || []).find((v) => v.voterId === currentUserId);
+      if (myVote?.selectedOptionIds?.length) {
+        nextSelected[pollKey] = new Set(myVote.selectedOptionIds);
+      }
+    });
+
+    if (Object.keys(nextSelected).length > 0) {
+      setSelectedByPoll((prev) => ({ ...prev, ...nextSelected }));
+    }
+  }, [votesByPoll, currentUserId]);
+
   // auto-finalize polls whose closingAt is in the past
   useEffect(() => {
     const now = new Date();
@@ -505,30 +522,30 @@ function PollsList({ events, refresh = 0, hideContainer = false }) {
                 className={`relative rounded-xl p-5 group border shadow-lg shadow-black/30 flex flex-col space-y-4 ${hideContainer ? "border-slate-800/60 bg-slate-800/30" : "border-gray-700 bg-gray-800/50"}`}
               >
                 <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1 space-y-2">
-                    <h4 className={`font-semibold text-lg ${hideContainer ? "text-slate-100" : "text-white"}`}>
+                  <div className="flex-1 space-y-2 min-w-0">
+                    <h4 className={`font-semibold text-lg break-words whitespace-normal ${hideContainer ? "text-slate-100" : "text-white"}`}>
                       {ev?.title || p.title || "Event"}
                     </h4>
 
                     <div className="space-y-1 text-sm">
-                      <div className={`flex items-center ${hideContainer ? "text-slate-200" : "text-gray-200"}`}>
+                      <div className={`flex items-center min-w-0 ${hideContainer ? "text-slate-200" : "text-gray-200"}`}>
                         <CalendarIcon className="w-4 h-4 mr-2 flex-shrink-0" />
-                        <span>{ev?.date || "Date TBD"}</span>
+                        <span className="break-words whitespace-normal">{ev?.date || "Date TBD"}</span>
                       </div>
-                      <div className={`flex items-center ${hideContainer ? "text-slate-200" : "text-gray-200"}`}>
+                      <div className={`flex items-center min-w-0 ${hideContainer ? "text-slate-200" : "text-gray-200"}`}>
                         <Clock className="w-4 h-4 mr-2 flex-shrink-0" />
-                        <span>{ev?.startTime} – {ev?.endTime}</span>
+                        <span className="break-words whitespace-normal">{ev?.startTime} – {ev?.endTime}</span>
                       </div>
                       {ev && ev.isVirtual && (
-                        <div className={`flex items-center ${hideContainer ? "text-slate-200" : "text-gray-200"}`}>
+                        <div className={`flex items-center min-w-0 ${hideContainer ? "text-slate-200" : "text-gray-200"}`}>
                           <Video className="w-4 h-4 mr-2 flex-shrink-0" />
-                          <span>Virtual Meeting</span>
+                          <span className="break-words whitespace-normal">Virtual Meeting</span>
                         </div>
                       )}
                       {ev && !ev.isVirtual && ev.location && (
-                        <div className={`flex items-center ${hideContainer ? "text-slate-200" : "text-gray-200"}`}>
+                        <div className={`flex items-center min-w-0 ${hideContainer ? "text-slate-200" : "text-gray-200"}`}>
                           <MapPin className="w-4 h-4 mr-2 flex-shrink-0" />
-                          <span className="truncate max-w-[16rem]">{ev.location}</span>
+                          <span className="truncate break-words whitespace-normal max-w-full">{ev.location}</span>
                         </div>
                       )}
                     </div>
@@ -593,7 +610,7 @@ function PollsList({ events, refresh = 0, hideContainer = false }) {
                     return (
                       <div
                         key={opt.id}
-                        className={`flex items-start gap-3 justify-between p-3 rounded-lg border transition-colors ${
+                        className={`flex flex-row flex-wrap items-start gap-3 justify-between p-3 rounded-lg border transition-colors w-full ${
                           selected 
                             ? hideContainer 
                               ? "bg-app-rose/20 border-app-rose/30" 
@@ -603,7 +620,7 @@ function PollsList({ events, refresh = 0, hideContainer = false }) {
                               : "bg-gray-700/30 border-gray-700/50 hover:bg-gray-700/50"
                         }`}
                       >
-                        <div className={`flex items-start gap-3 flex-1 ${isFinalized ? "opacity-60 pointer-events-none" : ""}`}>
+                        <div className={`flex items-start gap-3 flex-1 min-w-0 w-full ${isFinalized ? "opacity-60 pointer-events-none" : ""}`}>
                           <Checkbox
                             id={`${pollKey}-${opt.id}`}
                             checked={selected}
@@ -612,34 +629,34 @@ function PollsList({ events, refresh = 0, hideContainer = false }) {
                           />
                           <div className="flex-1 space-y-1">
                             {/* Date */}
-                            <div className={`flex items-center text-sm ${hideContainer ? "text-slate-100" : "text-white"}`}>
+                            <div className={`flex items-center text-sm min-w-0 ${hideContainer ? "text-slate-100" : "text-white"}`}>
                               <CalendarIcon className="w-4 h-4 mr-2 flex-shrink-0" />
-                              <span className="truncate">{formatDate(opt.startISO)}</span>
+                              <span className="truncate break-words whitespace-normal">{formatDate(opt.startISO)}</span>
                             </div>
 
                             {/* Time */}
-                            <div className={`flex items-center text-sm ${hideContainer ? "text-slate-100" : "text-white"}`}>
+                            <div className={`flex items-center text-sm min-w-0 ${hideContainer ? "text-slate-100" : "text-white"}`}>
                               <Clock className="w-4 h-4 mr-2 flex-shrink-0" />
-                              <span>{formatTime(opt.startISO)} - {formatTime(opt.endISO)}</span>
+                              <span className="break-words whitespace-normal">{formatTime(opt.startISO)} - {formatTime(opt.endISO)}</span>
                             </div>
 
                             {/* Location if available */}
                             {ev && !ev.isVirtual && ev.location && (
-                              <div className={`flex items-center text-sm ${hideContainer ? "text-slate-100" : "text-white"}`}>
+                              <div className={`flex items-center text-sm min-w-0 ${hideContainer ? "text-slate-100" : "text-white"}`}>
                                 <MapPin className="w-4 h-4 mr-2 flex-shrink-0" />
-                                <span className="truncate max-w-[14rem]">{ev.location}</span>
+                                <span className="truncate break-words whitespace-normal max-w-full">{ev.location}</span>
                               </div>
                             )}
 
                             {ev && ev.isVirtual && (
-                              <div className={`flex items-center text-sm ${hideContainer ? "text-slate-100" : "text-white"}`}>
+                              <div className={`flex items-center text-sm min-w-0 ${hideContainer ? "text-slate-100" : "text-white"}`}>
                                 <Video className="w-4 h-4 mr-2 flex-shrink-0" />
                                 <span>Virtual Meeting</span>
                               </div>
                             )}
 
                             {/* Votes */}
-                            <div className={`text-xs pt-1 ${hideContainer ? "text-slate-400" : "text-gray-400"}`}>
+                            <div className={`text-xs pt-1 break-words ${hideContainer ? "text-slate-400" : "text-gray-400"}`}>
                               {voters.length === 0
                                 ? "No votes yet"
                                 : `Votes: ${voters.length} — ${voters.join(
@@ -653,7 +670,7 @@ function PollsList({ events, refresh = 0, hideContainer = false }) {
                           <button
                             type="button"
                             onClick={() => handleUseThisTime(p, ev, opt)}
-                            className="ml-2 text-xs px-3 py-1.5 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 whitespace-nowrap transition-colors shadow-sm"
+                            className="ml-2 text-xs px-3 py-1.5 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 whitespace-nowrap transition-colors shadow-sm self-start"
                           >
                             Use this time
                           </button>

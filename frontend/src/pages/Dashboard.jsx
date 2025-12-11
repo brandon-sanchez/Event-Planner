@@ -42,8 +42,8 @@ function Dashboard() {
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(244,114,182,0.12),transparent_30%),radial-gradient(circle_at_80%_0%,rgba(244,63,94,0.12),transparent_25%)] pointer-events-none" />
       <div className="relative">
         <Header invitations={invitations} />
-        <main className="container mx-auto px-4 sm:px-6 lg:px-10 py-8">
-          <div className="bg-slate-900/60 border border-slate-800 rounded-3xl shadow-2xl shadow-black/40 p-4 sm:p-6">
+        <main className="flex justify-center py-8">
+          <div className="w-[1400px] min-w-[1400px] max-w-[1400px] bg-slate-900/60 border border-slate-800 rounded-3xl shadow-2xl shadow-black/40 p-6">
             <Calendar />
           </div>
         </main>

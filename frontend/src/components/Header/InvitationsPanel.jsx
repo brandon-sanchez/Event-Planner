@@ -152,20 +152,22 @@ function InvitationsPanel({
             >
               {/* Event Title with Color Indicator */}
               <div className="flex items-start justify-between mb-2">
-                <div className="flex items-center space-x-2 flex-1">
+                <div className="flex items-center space-x-2 flex-1 min-w-0">
                   <div
                     className={`w-1 ${isInDropdown ? "h-10" : "h-12"} rounded ${colorClass}`}
                     style={colorStyle}
                   />
-                  <div>
+                  <div className="min-w-0">
                     <h4
-                      className={`text-slate-100 font-semibold ${isInDropdown ? "text-sm" : ""}`}
+                      className={`text-slate-100 font-semibold break-words whitespace-normal ${isInDropdown ? "text-sm" : ""}`}
                     >
                       {event?.title || "Event details unavailable"}
                     </h4>
-                    <p className="text-xs text-slate-400 flex items-center space-x-1 mt-1">
-                      <User className="w-3 h-3" />
-                      <span>by {inviter.displayName || inviter.email}</span>
+                    <p className="text-xs text-slate-400 flex items-center space-x-1 mt-1 break-words whitespace-normal">
+                      <User className="w-3 h-3 flex-shrink-0" />
+                      <span className="truncate break-words whitespace-normal">
+                        by {inviter.displayName || inviter.email}
+                      </span>
                     </p>
                   </div>
                 </div>
@@ -175,9 +177,9 @@ function InvitationsPanel({
               <div className="space-y-1 mb-3 ml-3">
                 {/* Date */}
                 {event?.date && (
-                  <div className="flex items-center space-x-2 text-xs text-slate-200">
-                    <Calendar className="w-3 h-3 text-slate-400" />
-                    <span>
+                  <div className="flex items-center space-x-2 text-xs text-slate-200 min-w-0">
+                    <Calendar className="w-3 h-3 text-slate-400 flex-shrink-0" />
+                    <span className="break-words whitespace-normal">
                       {formatDate(event.date)}
                     </span>
                   </div>
@@ -185,9 +187,9 @@ function InvitationsPanel({
 
                 {/* time */}
                 {(event?.startTime || event?.endTime) && (
-                  <div className="flex items-center space-x-2 text-xs text-slate-200">
-                    <Clock className="w-3 h-3 text-slate-400" />
-                    <span>
+                  <div className="flex items-center space-x-2 text-xs text-slate-200 min-w-0">
+                    <Clock className="w-3 h-3 text-slate-400 flex-shrink-0" />
+                    <span className="break-words whitespace-normal">
                       {event?.startTime}
                       {event?.endTime && ` - ${event.endTime}`}
                     </span>
@@ -201,22 +203,24 @@ function InvitationsPanel({
                   </span>
                 ) : (
                   event?.location && (
-                    <div className="flex items-center space-x-2 text-xs text-slate-200">
-                      <MapPin className="w-3 h-3 text-slate-400" />
-                      <span className="truncate">{event.location}</span>
+                    <div className="flex items-center space-x-2 text-xs text-slate-200 min-w-0">
+                      <MapPin className="w-3 h-3 text-slate-400 flex-shrink-0" />
+                      <span className="truncate break-words whitespace-normal">
+                        {event.location}
+                      </span>
                     </div>
                   )
                 )}
 
                 {!event && (
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-slate-400 break-words whitespace-normal">
                     Event may have been deleted or is no longer accessible.
                   </p>
                 )}
               </div>
 
               {/* Action Buttons - Smaller for dropdown */}
-              <div className="flex space-x-2 ml-3">
+              <div className="flex flex-wrap gap-2 ml-3">
                 <button
                   onClick={() => handleAccept(invitation)}
                   disabled={isProcessing}

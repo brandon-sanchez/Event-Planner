@@ -87,8 +87,8 @@ export default function Header({
   };
 
   return (
-    <header className="sticky top-0 z-30 border-b border-slate-800/70 bg-slate-950/40 backdrop-blur-xl px-4 sm:px-6 py-4 shadow-[0_10px_40px_rgba(0,0,0,0.35)]">
-      <div className="flex justify-between items-center w-full">
+    <header className="sticky top-0 z-30 border-b border-slate-800/70 bg-slate-950/40 backdrop-blur-xl py-4 shadow-[0_10px_40px_rgba(0,0,0,0.35)] flex justify-center">
+      <div className="w-[1600px] min-w-[1400px] max-w-[1600px] flex justify-between items-center px-4">
         <h1 className="text-xl font-semibold text-slate-50 tracking-tight">Dashboard</h1>
 
         <div className="flex items-center space-x-4">

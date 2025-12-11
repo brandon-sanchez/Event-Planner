@@ -327,8 +327,8 @@ function Calendar() {
 
   return (
     <div>
-      <div className="flex flex-col lg:flex-row gap-6 items-stretch">
-        <div className="flex-[2] min-w-0">
+      <div className="flex flex-row gap-6 items-stretch">
+        <div className="flex-1 min-w-[720px]">
           <CalendarHeader
             currentDate={currentDate}
             onNavigateMonth={navigateMonth}
@@ -344,8 +344,8 @@ function Calendar() {
           />
         </div>
 
-        <div className="w-full lg:w-[26rem] xl:w-[28rem] bg-slate-900/70 border border-slate-800 rounded-2xl shadow-2xl shadow-black/30 flex flex-col overflow-hidden h-[620px] lg:h-[825px] shrink-0">
-          <div className="px-4 sm:px-6 pt-4 sm:pt-6 pb-4 flex-shrink-0">
+        <div className="w-[420px] min-w-[420px] max-w-[420px] bg-slate-900/70 border border-slate-800 rounded-2xl shadow-2xl shadow-black/30 flex flex-col overflow-hidden h-[825px] shrink-0">
+          <div className="px-4 pt-4 pb-4 flex-shrink-0">
             <div className="flex bg-app-bg border border-app-border rounded-lg p-1">
               <button
                 className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-md text-xs font-medium transition-all duration-200 ${
@@ -371,7 +371,7 @@ function Calendar() {
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto px-4 sm:px-6 pb-4 sm:pb-6">
+          <div className="flex-1 overflow-y-auto px-4 pb-4">
             {activeTab === "upcoming" ? (
               <UpcomingEventsList
                 events={expandedEvents}
