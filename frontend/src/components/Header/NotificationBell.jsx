@@ -4,6 +4,16 @@ import InvitationsPanel from "./InvitationsPanel";
 import { db } from "../../config/firebase";
 import { doc, onSnapshot } from "firebase/firestore";
 
+/**
+ * NotificationBell component for the dashboard page. It appears in the top right corner of the dashboard page. It has the invitations, onInvitationAccepted, and onInvitationDeclined.
+ * 
+ * @param {Array} invitations - the invitations for the user
+ * @param {Function} onInvitationAccepted - the function to call for when an invitation is accepted
+ * @param {Function} onInvitationDeclined - the function to call for when an invitation is declined
+ * 
+ * @returns {JSX.Element} - the jsx element for the notification bell component
+ */
+
 function NotificationBell({
   invitations,
   onInvitationAccepted,
@@ -14,7 +24,7 @@ function NotificationBell({
 
   const dropdownRef = useRef(null);
 
-  // Check which invitations are for events that still exist
+  // check which invitations are for events that still exist
   useEffect(() => {
     if (!invitations || invitations.length === 0) {
       setEventDetails({});
@@ -60,7 +70,7 @@ function NotificationBell({
     };
   }, [invitations]);
 
-  // Only count invitations where the event still exists
+  // only count invitations where the event still exists
   const visibleInvitations = invitations?.filter(
     (inv) => eventDetails[inv.id] !== null
   ) || [];
@@ -83,10 +93,12 @@ function NotificationBell({
     };
   }, [isOpen]);
 
+  // toggle the dropdown
   const toggleDropdown = () => {
     setIsOpen(!isOpen);
   };
 
+  // when an invitation is accepted
   const handleAccepted = (event) => {
     //close dropdown
     setIsOpen(false);
@@ -111,7 +123,7 @@ function NotificationBell({
       >
         <Bell className="w-5 h-5" />
 
-        {/* Badge Count - Only show if there are invitations */}
+        {/* Badge Count but only show if there are invitations */}
         {invitationCount > 0 && (
           <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center shadow-lg shadow-rose-900/40 animate-pulse">
             {invitationCount > 9 ? "9+" : invitationCount}
@@ -122,6 +134,7 @@ function NotificationBell({
       {/* Dropdown Panel */}
       {isOpen && (
         <div className="absolute right-0 mt-2 w-96 max-h-[80vh] overflow-y-auto bg-slate-900/95 backdrop-blur-xl rounded-2xl shadow-2xl shadow-black/40 border border-slate-700 z-50 animate-fadeIn">
+          
           {/* Dropdown Header */}
           <div className="sticky top-0 bg-slate-950/98 backdrop-blur-xl border-b border-slate-700 px-4 py-3 z-10 rounded-t-2xl">
             <h3 className="text-lg font-semibold text-slate-100 flex items-center justify-between">
@@ -146,12 +159,11 @@ function NotificationBell({
                 </p>
               </div>
             ) : (
-              // Show invitations using the panel component
               <InvitationsPanel
                 invitations={visibleInvitations}
                 onInvitationAccepted={handleAccepted}
                 onInvitationDeclined={handleDeclined}
-                isInDropdown={true} // Flag to adjust styling for dropdown
+                isInDropdown={true}
               />
             )}
           </div>

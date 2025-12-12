@@ -10,31 +10,50 @@ import UpcomingEventsList from "./UpcomingEventsList";
 import EventHoverCard from "./EventHoverCard";
 import { createEvent, deleteEvent, updateEvent, leaveEvent } from "../../services/eventService";
 import { collection, onSnapshot } from "firebase/firestore";
-
-// Added for poll feature
 import CreatePollModal from "./CreatePollModal";
 import PollsList from "./PollsList";
 
+/**
+ * Main calendar component that displays events in a monthly grid view. Its a component within the dashboard page
+ * 
+ * @returns {JSX.Element} - the calendar component with grid view
+ */
 function Calendar() {
+  const currentUser = getCurrentUser(auth);
+
   const [currentDate, setCurrentDate] = useState(new Date());
   const [events, setEvents] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  //use states for the hover card
   const [hoveredEvent, setHoveredEvent] = useState(null);
   const [hoverPosition, setHoverPosition] = useState({ x: 0, y: 0 });
   const [hoverAnchor, setHoverAnchor] = useState(null);
-  const [showCreateModal, setShowCreateModal] = useState(false);
   const [isHoverCardFading, setIsHoverCardFading] = useState(false);
-  const [editingEvent, setEditingEvent] = useState(null);
-  const [pendingDeleteEventId, setPendingDeleteEventId] = useState(null);
-  const [pendingLeaveEventId, setPendingLeaveEventId] = useState(null);
-  const [isLeavingEvent, setIsLeavingEvent] = useState(false);
-  const [isDeletingEvent, setIsDeletingEvent] = useState(false);
+
+  //refs for the hover card
   const hoverCardRef = useRef(null);
   const hoverTimeoutRef = useRef(null);
+
+  const [showCreateModal, setShowCreateModal] = useState(false);
+
+  //use state for the editing event and the leaving and deleting events
+  const [editingEvent, setEditingEvent] = useState(null);
+  const [isLeavingEvent, setIsLeavingEvent] = useState(false);
+  const [isDeletingEvent, setIsDeletingEvent] = useState(false);
+
+
+  const [pendingDeleteEventId, setPendingDeleteEventId] = useState(null);
+  const [pendingLeaveEventId, setPendingLeaveEventId] = useState(null);
+
   const [activeTab, setActiveTab] = useState("upcoming");
 
-  const currentUser = getCurrentUser(auth);
+  //use state for the polls
+  const [pollRefresh, setPollRefresh] = useState(0);
+  const [pollForEvent, setPollForEvent] = useState(null);
 
+
+  // this function if used for make sure that the creator is always present for group events
   const normalizeAttendees = (attendees = [], includeCreator = false) => {
     const creatorId = auth.currentUser?.uid;
     const creatorEmail = auth.currentUser?.email?.toLowerCase();
@@ -73,11 +92,7 @@ function Calendar() {
     return normalized;
   };
 
-  // listen for auth changes and fetch user's events
-  // Added state for poll logic
-  const [pollRefresh, setPollRefresh] = useState(0);
-  const [pollForEvent, setPollForEvent] = useState(null);
-
+  // fetch the events from the database
   useEffect(() => {
     let eventsUnsub = null;
 
@@ -119,12 +134,14 @@ function Calendar() {
     };
   }, []);
 
+  // needed to make this function to fix the hover card position
   const clampHoverY = (desiredCenterY, cardHeight, padding) => {
     const minCenterY = padding + cardHeight / 2;
     const maxCenterY = Math.max(minCenterY, window.innerHeight - padding - cardHeight / 2);
     return Math.min(Math.max(desiredCenterY, minCenterY), maxCenterY);
   };
 
+  // event hover function
   const handleEventHover = (event, e) => {
     if (hoverTimeoutRef.current) {
       clearTimeout(hoverTimeoutRef.current);
@@ -132,7 +149,7 @@ function Calendar() {
 
     const rect = e.currentTarget.getBoundingClientRect();
     const padding = 12;
-    const fallbackHeight = 320; // keep initial position near the hovered event
+    const fallbackHeight = 320;
     const desiredCenterY = rect.top + rect.height / 2;
 
     setHoverAnchor({ top: rect.top, right: rect.right, height: rect.height });
@@ -144,6 +161,7 @@ function Calendar() {
     setIsHoverCardFading(false);
   };
 
+  // function for leaving the hover card area
   const handleEventLeave = () => {
     setIsHoverCardFading(true);
 
@@ -153,6 +171,7 @@ function Calendar() {
     }, 300);
   };
 
+  // function for entering the hover card area
   const handleHoverCardEnter = () => {
     if (hoverTimeoutRef.current) {
       clearTimeout(hoverTimeoutRef.current);
@@ -180,6 +199,7 @@ function Calendar() {
     return () => cancelAnimationFrame(rafId);
   }, [hoveredEvent, hoverAnchor]);
 
+  // function for creating a new event
   const handleCreateEvent = async (newEvent)  => {
     try {
       const eventToAdd = {
@@ -204,13 +224,17 @@ function Calendar() {
     
   };
 
+  // function for deleting an event
   const handleDeleteEvent = async (eventId) => {
       setPendingLeaveEventId(null);
       setPendingDeleteEventId(eventId);
   };
 
+  // confirming the deletion of an event
   const confirmDeleteEvent = async () => {
-      if (!pendingDeleteEventId) return;
+      if (!pendingDeleteEventId) 
+        return;
+
       setIsDeletingEvent(true);
       const prev = events;
       setEvents(curr => curr.filter(e => e.id !== pendingDeleteEventId));
@@ -218,19 +242,20 @@ function Calendar() {
       try {
           await deleteEvent(pendingDeleteEventId);
       } catch (err) {
-          console.error('Failed to delete event:', err);
+          console.error('Failed to delete the event:', err);
           setEvents(prev);
       }
       setIsDeletingEvent(false);
       setPendingDeleteEventId(null);
   };
 
-  
+  //for when the user wants to leave an event
   const handleLeaveEvent = async (eventId) => {
     setPendingDeleteEventId(null);
     setPendingLeaveEventId(eventId);
   };
 
+  // confirming the leaving of an event
   const confirmLeaveEvent = async () => {
     if (!pendingLeaveEventId) return;
     setIsLeavingEvent(true);
@@ -248,7 +273,7 @@ function Calendar() {
       console.log('Successfully left event');
     } catch (err) {
       console.error("Failed to leave event:", err);
-      alert("Failed to leave event.");
+
       if (previousEvents) {
         setEvents(previousEvents);
       }
@@ -260,14 +285,15 @@ function Calendar() {
     setEditingEvent(null);
   };
 
+  // for when user wants to edit an event
   const handleEditEvent = (event) => {
-    // for recurring events need to find the base event not the occurrence
     const baseId = event?.seriesId || event?.id;
     const baseEvent = events.find((e) => e.id === baseId) || event;
     setEditingEvent(baseEvent);
     setShowCreateModal(true);
   };
 
+  // updating an event
   const handleUpdateEvent = async (eventId, updatedEventData) => {
     try {
       const eventToUpdate = {
@@ -292,13 +318,14 @@ function Calendar() {
     }
   };
 
-  // Added: functions for poll creation
+  // for creating a poll
   const openCreatePoll = (event) => {
-    if (!event?.isGroupEvent) return;   // ignore non-group events
+    if (!event?.isGroupEvent) return;  
     setPollForEvent(event);
   };
   const closeCreatePoll = () => setPollForEvent(null);
 
+  // moving to the next or previous month
   const navigateMonth = (direction) => {
     setCurrentDate((prev) => {
       const newDate = new Date(prev);
@@ -307,6 +334,7 @@ function Calendar() {
     });
   };
 
+  // jumping the calendar to today
   const goToToday = () => {
     setCurrentDate(new Date());
   };
@@ -328,6 +356,7 @@ function Calendar() {
   return (
     <div>
       <div className="flex flex-row gap-6 items-stretch">
+        {/* Calendar grid */}
         <div className="flex-1 min-w-[720px]">
           <CalendarHeader
             currentDate={currentDate}
@@ -344,9 +373,14 @@ function Calendar() {
           />
         </div>
 
+        {/* sidebar for upcoming events and polls panel*/}
         <div className="w-[420px] min-w-[420px] max-w-[420px] bg-slate-900/70 border border-slate-800 rounded-2xl shadow-2xl shadow-black/30 flex flex-col overflow-hidden h-[825px] shrink-0">
+
+        {/*Tab selector for upcoming events and polls*/}
           <div className="px-4 pt-4 pb-4 flex-shrink-0">
             <div className="flex bg-app-bg border border-app-border rounded-lg p-1">
+
+              {/* Upcoming events tab */}
               <button
                 className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-md text-xs font-medium transition-all duration-200 ${
                   activeTab === "upcoming"
@@ -358,6 +392,7 @@ function Calendar() {
                 Upcoming Events
               </button>
 
+              {/* Polls tab */}
               <button
                 className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-md text-xs font-medium transition-all duration-200 ${
                   activeTab === "polls"
@@ -387,6 +422,7 @@ function Calendar() {
         </div>
       </div>
 
+      {/* Hover card for event details */}
       <EventHoverCard
         event={hoveredEvent}
         position={hoverPosition}
@@ -400,8 +436,8 @@ function Calendar() {
         cardRef={hoverCardRef}
       />
 
-      {/* Modal logic below */}
 
+      {/* Delete confirmation modal */}
       {pendingDeleteEventId && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fadeIn">
           <div className="bg-app-card rounded-lg p-6 w-full max-w-sm shadow-2xl animate-slideUp">
@@ -410,6 +446,7 @@ function Calendar() {
               Are you sure you want to delete this event? This action cannot be undone.
             </p>
             <div className="flex justify-end gap-3">
+              {/* Cancel button */}
               <button
                 onClick={() => !isDeletingEvent && setPendingDeleteEventId(null)}
                 className="px-4 py-2 rounded-md border border-app-border text-app-text hover:bg-app-border/30 disabled:opacity-70"
@@ -417,6 +454,8 @@ function Calendar() {
               >
                 Cancel
               </button>
+
+              {/* Delete button */}
               <button
                 onClick={confirmDeleteEvent}
                 className="px-4 py-2 rounded-md bg-red-600 text-white hover:bg-red-700 disabled:opacity-70"
@@ -429,6 +468,7 @@ function Calendar() {
         </div>
       )}
 
+      {/* Leave confirmation modal */}
       {pendingLeaveEventId && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fadeIn">
           <div className="bg-app-card rounded-lg p-6 w-full max-w-sm shadow-2xl animate-slideUp">
@@ -437,6 +477,7 @@ function Calendar() {
               Are you sure you want to leave this event? You will be removed from the attendee list.
             </p>
             <div className="flex justify-end gap-3">
+              {/* Cancel button */}
               <button
                 onClick={() => !isLeavingEvent && setPendingLeaveEventId(null)}
                 className="px-4 py-2 rounded-md border border-app-border text-app-text hover:bg-app-border/30 disabled:opacity-70"
@@ -444,6 +485,8 @@ function Calendar() {
               >
                 Cancel
               </button>
+
+              {/* Leave button */}
               <button
                 onClick={confirmLeaveEvent}
                 className="px-4 py-2 rounded-md bg-orange-500 text-white hover:bg-orange-600 disabled:opacity-70"
@@ -456,6 +499,7 @@ function Calendar() {
         </div>
       )}
 
+      {/* Event modal for creating and editing events */}
       <EventModal
         isOpen={showCreateModal}
         onClose={() => {

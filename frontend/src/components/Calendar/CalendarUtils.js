@@ -1,15 +1,19 @@
+// gets the number of days in a month
 const getDaysInMonth = (date) => {
 return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
 };
 
+// gets the first day of the month
 const getFirstDayOfMonth = (date) => {
   return new Date(date.getFullYear(), date.getMonth(), 1).getDay();
 };
 
+// formats the month and year
 const formatMonth = (date) => {
   return date.toLocaleDateString("en-US", { month: "long", year: "numeric" });
 };
 
+// generates the calendar days for the current month. I had the grid be 42 cells wide to show 6 weeks and the days are null if they are not in the current month just to ensure that there is consistency in the grid when switching months.
 const generateCalendarDays = (currentDate) => {
   const daysInMonth = getDaysInMonth(currentDate);
   const firstDay = getFirstDayOfMonth(currentDate);
@@ -35,6 +39,7 @@ const generateCalendarDays = (currentDate) => {
   return days;
 };
 
+// gets the events for a given day
 const getEventsForDay = (currentDate, events, day) => {
   if (!day) return [];
   const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
@@ -52,7 +57,7 @@ const getEventsForDay = (currentDate, events, day) => {
     });
 };
 
-//24-hour time to 12-hour AM/PM
+//converts the time from 24 hours to 12 hours
 const convertTo12HourFormat = (time24) => {
   const [hours, minutes] = time24.split(":");
   let hour = parseInt(hours, 10);
@@ -62,7 +67,7 @@ const convertTo12HourFormat = (time24) => {
   return `${hour}:${minutes} ${period}`;
 };
 
-//parse 12-hour AM/PM time to hour and minute
+//parses the 12-hour time to hour and minute object
 const parseTime = (timeStr) => {
   if (!timeStr) {
     return { hour: 0, minute: 0 };
@@ -81,6 +86,7 @@ const parseTime = (timeStr) => {
   return { hour: hour24, minute: parseInt(minutes) };
 };
 
+// converts the time from 12 hours to 24 hours
 const convertTo24hourFormat = (time12h) => {
   const [time, period] = time12h.split(" ");
 
@@ -97,12 +103,13 @@ const convertTo24hourFormat = (time12h) => {
   return `${hours.toString().padStart(2, '0')}:${minutes}`;
 };
 
-// recurrence helpers are kept pure to encourage functional composition
+// parses the ISO date to a date object
 const parseISODate = (isoDate) => {
   const [year, month, day] = isoDate.split("-").map(Number);
   return new Date(year, month - 1, day);
 };
 
+// formats the date to ISO string
 const formatDateToISO = (date) => {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -110,8 +117,10 @@ const formatDateToISO = (date) => {
   return `${year}-${month}-${day}`;
 };
 
+// checks if the date is in the range
 const isDateInRange = (date, start, end) => date >= start && date <= end;
 
+// gets the visible range for the calendar
 const getVisibleRange = (currentDate) => {
   const rangeStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
   const rangeEnd = new Date(rangeStart);
@@ -170,6 +179,7 @@ const buildOccurrences = (event, rangeStart, rangeEnd) => {
 
   return occurrences;
 };
+
 
 const expandRecurringEvents = (events, currentDate) => {
   const { rangeStart, rangeEnd } = getVisibleRange(currentDate);

@@ -1,6 +1,7 @@
 // Shared utility functions used across the app
 import { auth } from "../config/firebase";
 
+// checks if the user is authenticated
 const checkAuth = () => {
   const user = auth.currentUser;
 
@@ -10,10 +11,12 @@ const checkAuth = () => {
   return user;
 };
 
+// gets the current user id
 const getCurrentUserId = () => {
   return checkAuth().uid;
 };
 
+// gets the initials of a name
 const getInitials = (name) => {
   if (!name) return "U";
   return name
@@ -24,6 +27,7 @@ const getInitials = (name) => {
     .slice(0, 2);
 };
 
+// gets the current user
 const getCurrentUser = (auth) => {
 
   return {
@@ -36,6 +40,7 @@ const getCurrentUser = (auth) => {
   };
 };
 
+// gets the color classes for a given color
 const getColorClasses = (color, type = "bg") => {
   const isCustomHex = typeof color === "string" && color.startsWith("#");
   if (isCustomHex) {
@@ -43,7 +48,7 @@ const getColorClasses = (color, type = "bg") => {
     if (type === "bgHex") return color;
     return "";
   }
-
+  // preset colors for the events
   const colorMap = {
     bg: {
       blue: "bg-blue-600",
@@ -84,13 +89,13 @@ const formatDate = (dateString) => {
   return `${month}/${day}/${year}`;
 };
 
-// checking if a color is light or dark to determine appropriate text color
+// checking if a color is light or dark to determine appropriate text color so if the user wants a light color, then the text will be dark and vice versa.
 const isLightColor = (color) => {
   if (!color || !color.startsWith("#")) {
     return false;
   }
 
-  // converting 
+  // getting the hex value of the color
   const hex = color.replace("#", "");
   const r = parseInt(hex.substring(0, 2), 16);
   const g = parseInt(hex.substring(2, 4), 16);

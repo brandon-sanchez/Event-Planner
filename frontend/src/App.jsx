@@ -6,6 +6,13 @@ import { auth } from "./config/firebase";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 
+/**
+ * ProtectedRoute component to protect routes that require authentication
+ * 
+ * @param {React.ReactNode} children - the child components to protect
+ * @returns {React.ReactNode} - the protected route component
+*/
+
 function ProtectedRoute({ children }) {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
@@ -30,6 +37,7 @@ function ProtectedRoute({ children }) {
   return user ? children : <Navigate to="/" />;
 }
 
+// main app component, it has the routes for the app and the protected route component to protect the routes that require authentication which in this case is the dashboard.
 function App() {
   return (
     <BrowserRouter>

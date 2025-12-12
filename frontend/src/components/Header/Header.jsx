@@ -6,6 +6,15 @@ import Avatar from "./Avatar";
 import { getUserProfile } from "../../services/userService";
 import NotificationBell from "./NotificationBell";
 
+/**
+ * Header component for the dashboard page
+ * 
+ * @param {Array} invitations - the invitations for the user
+ * @param {Function} onInvitationAccepted - function to call for when an invitation is accepted
+ * @param {Function} onInvitationDeclined - function to call for when an invitation is declined
+ * @returns {JSX.Element} - the header component that is displayed on the dashboard page
+ */
+
 export default function Header({
   invitations = [],
   onInvitationAccepted,
@@ -23,6 +32,7 @@ export default function Header({
   });
   const profileMenuRef = useRef(null);
 
+  // use effect to fetch the user profile from the database
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
@@ -40,7 +50,7 @@ export default function Header({
               photoURL: userProfile.photoURL || user.photoURL || null,
             });
           } else {
-            // Fallback to auth user data if profile doesn't exist
+            // use the user data from the authentication if the profile doesn't exist
             setCurrentUser({
               name: user.displayName || user.email?.split("@")[0] || "User",
               email: user.email || "user@example.com",
@@ -48,8 +58,7 @@ export default function Header({
             });
           }
         } catch (error) {
-          console.error("Error fetching user profile in Header:", error);
-          // Fallback to auth user data on error
+          console.error("Error fetching user profile:", error);
           setCurrentUser({
             name: user.displayName || user.email?.split("@")[0] || "User",
             email: user.email || "user@example.com",
@@ -63,6 +72,7 @@ export default function Header({
   }, []);
 
   useEffect(() => {
+    // added this so it properly closes the profile menu when clicking outside of it
     const handleClickOutside = (event) => {
       if (
         profileMenuRef.current &&
@@ -81,6 +91,7 @@ export default function Header({
     };
   }, [showProfileMenu]);
 
+  // function for logging out the user
   const handleLogout = async () => {
     await signOut(auth);
     navigate("/");

@@ -5,6 +5,13 @@ import { auth, googleProvider, githubProvider } from "../config/firebase";
 import { GoogleLoginButton, GithubLoginButton } from "react-social-login-buttons";
 import { createOrUpdateUserProfile } from "../services/userService";
 
+/**
+ * Login page component for the app.
+ * 
+ * @returns {JSX.Element} - the jsx element for the login page component
+ */
+
+
 function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -12,6 +19,7 @@ function Login() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  // handle login
   const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
@@ -32,6 +40,7 @@ function Login() {
     }
   };
 
+  // for google login
   const handleGoogleLogin = async () => {
     setError("");
     setLoading(true);
@@ -51,6 +60,7 @@ function Login() {
     }
   };
 
+  // for github login
   const handleGithubLogin = async () => {
     setError("");
     setLoading(true);
@@ -73,6 +83,8 @@ function Login() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 flex items-center justify-center p-4">
       <div className="bg-slate-900/80 border border-slate-800 backdrop-blur-xl p-8 rounded-3xl shadow-2xl w-full max-w-md">
+
+        {/* title */}
         <h1 className="text-3xl font-bold text-rose-500 mb-6 text-center">
           Event Planner
         </h1>
@@ -85,6 +97,8 @@ function Login() {
         )}
 
         <form onSubmit={handleLogin}>
+
+           {/* email input */}
           <div className="mb-4">
             <label className="block text-slate-200 text-sm font-semibold mb-2">
               Email
@@ -98,6 +112,7 @@ function Login() {
             />
           </div>
 
+          {/* password input */}
           <div className="mb-6">
             <label className="block text-slate-200 text-sm font-semibold mb-2">
               Password
@@ -111,6 +126,7 @@ function Login() {
             />
           </div>
 
+          {/* login button */}
           <button
             type="submit"
             disabled={loading}
@@ -131,6 +147,7 @@ function Login() {
           </div>
 
           <div className="mt-6 grid grid-cols-2 gap-3">
+            {/* Google login button */}
             <GoogleLoginButton
               onClick={handleGoogleLogin}
               disabled={loading}
@@ -139,6 +156,7 @@ function Login() {
               <span>Google</span>
             </GoogleLoginButton>
 
+            {/* Github login button */}
             <GithubLoginButton
               onClick={handleGithubLogin}
               disabled={loading}
@@ -151,6 +169,8 @@ function Login() {
 
         <p className="text-center text-slate-400 text-sm mt-6">
           Don't have an account? {""}
+          
+          {/* sign up button */}
           <button
             onClick={() => navigate("/signup")}
             className="text-rose-300 hover:text-rose-200 hover:underline font-semibold"

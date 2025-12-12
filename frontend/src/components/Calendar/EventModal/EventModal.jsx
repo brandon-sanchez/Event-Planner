@@ -8,6 +8,9 @@ import RecurringEventFields from "./RecurringEventFields";
 import ColorPicker from "./ColorPicker";
 import AttendeeSelector from "./AttendeeSelector";
 
+/**
+ * This function is used for when its a recurring event and it is used to reset the recurrence object when the user clicks the cancel button so that way if they were click on create event button again, the fields are all reset and empty and it doesnt show the previous event data that they were working on.
+ */
 const buildDefaultRecurrence = () => ({
   isRecurring: false,
   startDate: "",
@@ -18,6 +21,11 @@ const buildDefaultRecurrence = () => ({
   exclusions: [],
 });
 
+/**
+ * This function is basically just used to reset the event object when the user clicks the cancel button so that way if they were click on create event button again, the fields are all reset and empty and it doesnt show the previous event data that they were working on.
+ * 
+ * @returns {Object} - it returns the empty event object
+ */
 const buildEmptyEvent = () => ({
   title: "",
   description: "",
@@ -32,7 +40,23 @@ const buildEmptyEvent = () => ({
   recurrence: buildDefaultRecurrence(),
 });
 
-//modal for creating a new event or editing an event
+/**
+ * This component is the main event modal component that holds the AttendeeSelector, ColorPicker, and EventBasicFields, and RecurringEventFields components within it. 
+ * 
+ * @param {Boolean} isOpen - the boolean that is used to check if the modal is open or not
+ * 
+ * @param {Function} onClose - the function that is used to close the modal when the user clicks the x button or the cancel button
+ * 
+ * @param {Function} onCreateEvent - the function that is used to create a new event
+ * 
+ * @param {Object} editEvent - the event object that is being edited
+ * 
+ * @param {Function} onUpdateEvent - the function that is used to update the event
+ * 
+ * @param {Function} onRequestLeave - the function that is used to request to leave the event
+ * 
+ * @returns {JSX.Element} - it returns the jsx element for the event modal
+ */
 
 function EventModal({
   isOpen,
@@ -40,7 +64,7 @@ function EventModal({
   onCreateEvent,
   editEvent = null,
   onUpdateEvent,
-  onRequestLeave, // optional: used when attendee tries to remove self
+  onRequestLeave, 
 }) {
   const [newEvent, setNewEvent] = useState(buildEmptyEvent);
 
@@ -58,7 +82,7 @@ function EventModal({
 
   const isEditingEvent = editEvent !== null;
 
-  // need to convert times from 12hr to 24hr for the time inputs
+  
   useEffect(() => {
     if (editEvent) {
       const convertedStartTime = convertTo24hourFormat(editEvent.startTime);
@@ -66,19 +90,32 @@ function EventModal({
 
       setNewEvent({
         title: editEvent.title || "",
+
         description: editEvent.description || "",
+
         date: editEvent.date || "",
+
         startTime: convertedStartTime || "",
+
         endTime: convertedEndTime || "",
+
         location: editEvent.location || "",
+
         isVirtual: editEvent.isVirtual || false,
+
         isGroupEvent: editEvent.isGroupEvent || false,
+
         color: editEvent.color || "blue",
+
         attendees: editEvent.attendees || [],
+
         recurrence: {
           ...buildDefaultRecurrence(),
+
           ...(editEvent.recurrence || {}),
+
           isRecurring: editEvent.recurrence?.isRecurring || false,
+
           startDate: editEvent.recurrence?.startDate || editEvent.date || "",
         },
       });
@@ -87,8 +124,10 @@ function EventModal({
     }
   }, [editEvent]);
 
-  if (!isOpen) return null;
+  if (!isOpen) 
+    return null;
 
+  // function that is used to update the recurrence object when the user clicks the update button
   const updateRecurrence = (updater) => {
     setNewEvent((prev) => ({
       ...prev,
@@ -96,6 +135,7 @@ function EventModal({
     }));
   };
 
+  // function for when the date or time picker is clicked
   const focusPicker = (ref) => {
     if (!ref?.current) return;
     ref.current.focus();
@@ -104,7 +144,7 @@ function EventModal({
     }
   };
 
-  // Handler for when a user is selected from the dropdown
+  // handler for when user selects a user from the dropdown
   const handleUserSelect = (user) => {
     const attendee = {
       displayName: user.displayName,
@@ -120,8 +160,9 @@ function EventModal({
     });
   };
 
+  // function for when user removes another user from the event
   const handleRemoveUser = (userToRemove) => {
-    // Do not allow removing the event owner while editing
+    // don't want to be able to remove owner while editing
     if (
       isEditingEvent &&
       editEvent?.createdBy &&
@@ -139,6 +180,8 @@ function EventModal({
     });
   };
 
+
+  //this function is simply for 
   const handleSavingEvent = async () => {
     // recurring events have different validation than one-time events
     const newErrors = newEvent.recurrence?.isRecurring
@@ -167,11 +210,13 @@ function EventModal({
 
     const hasErrors = Object.values(newErrors).some((error) => error === true);
 
+    // if there are no errors then we can save the event
     if (!hasErrors) {
-      // if the user is editing and user removes themselves and they are not the owner of the event, trigger leave flow instead of updating
       if (isEditingEvent && onRequestLeave) {
         const currentUserId = auth.currentUser?.uid;
+
         const currentUserEmail = auth.currentUser?.email?.toLowerCase();
+
         const isOwner =
           editEvent?.createdBy &&
           ((editEvent.createdBy.userId && editEvent.createdBy.userId === currentUserId) ||
@@ -206,10 +251,15 @@ function EventModal({
         const normalizedRecurrence = newEvent.recurrence?.isRecurring
           ? {
               ...buildDefaultRecurrence(),
+
               ...newEvent.recurrence,
+
               isRecurring: true,
+
               startDate: newEvent.recurrence.startDate,
+
               endDate: newEvent.recurrence.endMode === "date" ? newEvent.recurrence.endDate : "",
+
               occurrenceCount:
                 newEvent.recurrence.endMode === "count"
                   ? Math.max(
@@ -229,7 +279,8 @@ function EventModal({
               ...buildDefaultRecurrence(),
               isRecurring: false,
             };
-
+        
+        // if we are editing an event then we need to update the event
         if (isEditingEvent) {
           await onUpdateEvent(editEvent.id, { ...newEvent, date: normalizedRecurrence.startDate || newEvent.date, recurrence: normalizedRecurrence });
         } else {
@@ -246,7 +297,7 @@ function EventModal({
 
           const attendeeEmails = newEvent.attendees.map((a) => a.email);
 
-          console.log(`Sending invitations to: ${attendeeEmails.join(", ")}`);
+          console.log(`Sending invites to: ${attendeeEmails.join(", ")}`);
 
           const results = await sendMultipleInvitations(
             attendeeEmails,
@@ -256,7 +307,7 @@ function EventModal({
           console.log(`Sent ${results.successful.length} invitations`);
           if (results.failed.length > 0) {
             console.log(
-              `Failed to send ${results.failed.length} invitations:`,
+              `Failed to send invites:`,
               results.failed.map((f) => `${f.email}: ${f.error}`).join(", ")
             );
           }
@@ -274,12 +325,12 @@ function EventModal({
           location: false,
         });
       } catch (error) {
-        console.error("Error creating event or sending invitations:", error);
-        alert("Error creating event. Please try again.");
+        console.log("Error creating event or sending invitations:", error);
       }
     }
   };
 
+  //for cancel or x button is clicked
   const handleClose = () => {
     if (!isEditingEvent) {
       setNewEvent(buildEmptyEvent());
@@ -297,6 +348,8 @@ function EventModal({
 
   return (
     <div className="fixed inset-0 backdrop-blur-md flex items-center justify-center z-50 animate-fadeIn">
+
+      {/* container of the modal */}
       <div className="bg-slate-900/95 border border-slate-700 rounded-3xl w-full max-w-lg shadow-2xl shadow-black/40 animate-slideUp overflow-hidden">
         <div className="p-6 max-h-[90vh] overflow-y-auto">
           <style>{`
@@ -307,6 +360,8 @@ function EventModal({
             input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
             input[type="color"]::-webkit-color-swatch { border: none; border-radius: 9999px; }
           `}</style>
+
+          {/* header of the modal */}
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold text-slate-100">
               {isEditingEvent ? "Edit Event" : "Create New Event"}
@@ -321,7 +376,10 @@ function EventModal({
             </button>
           </div>
 
+          {/* form fields for the event */}
           <div className="space-y-4">
+
+            {/* basic fields for the event */}
             <EventBasicFields
               newEvent={newEvent}
               setNewEvent={setNewEvent}
@@ -345,11 +403,13 @@ function EventModal({
               />
             )}
 
+            {/* color field for the event */}
             <ColorPicker
               selectedColor={newEvent.color}
               onChange={(color) => setNewEvent({ ...newEvent, color })}
             />
 
+            {/* attendees field for the event (obviously only shows if its a group event) */}
             {newEvent.isGroupEvent && (
               <AttendeeSelector
                 attendees={newEvent.attendees}

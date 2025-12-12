@@ -2,6 +2,7 @@ import { collection, where, getDocs, setDoc, doc, getDoc, serverTimestamp, query
 import { db } from '../config/firebase';
 import { checkAuth } from '../utils/Utils';
 
+// creates or updates a user profile
 const createOrUpdateUserProfile = async (userData) => {
   try {
     const user = checkAuth();
@@ -31,11 +32,11 @@ const createOrUpdateUserProfile = async (userData) => {
         ...profileData,
         createdAt: serverTimestamp()
       });
-      console.log('User profile created successfully for user:', user.uid);
+      //console.log('User profile created successfully for user:', user.uid);
     } else {
       //update existing profile
       await setDoc(userDocRef, profileData, { merge: true });
-      console.log('User profile updated successfully for user:', user.uid);
+      //console.log('User profile updated successfully for user:', user.uid);
     }
 
     return { id: user.uid, ...profileData };
@@ -45,6 +46,7 @@ const createOrUpdateUserProfile = async (userData) => {
   }
 };
 
+// gets a user profile from the database
 const getUserProfile = async (userId) => {
   try {
     const userDocRef = doc(db, 'users', userId);
@@ -61,6 +63,7 @@ const getUserProfile = async (userId) => {
   }
 };
 
+// finds a user by email
 const findUserByEmail = async (email) => {
   try {
     checkAuth();
@@ -86,6 +89,7 @@ const findUserByEmail = async (email) => {
   }
 };
 
+// searches for users by email or name
 const searchUsers = async(searchQuery) => {
   try {
     checkAuth();

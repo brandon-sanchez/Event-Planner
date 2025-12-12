@@ -3,7 +3,6 @@ import { X, Lock, Calendar as CalendarIcon, Clock } from "lucide-react";
 import { createPoll, updatePoll } from "../../services/pollService";
 import { convertTo24hourFormat } from "./CalendarUtils";
 
-/** Helper: convert date ("YYYY-MM-DD") + 24h time ("HH:MM") to ISO string */
 const toISO = (date, time24) => {
   if (!date || !time24) return null;
   const [hh, mm] = time24.split(":").map(Number);
@@ -12,7 +11,6 @@ const toISO = (date, time24) => {
   return d.toISOString();
 };
 
-/** Helper: convert ISO → { date: "YYYY-MM-DD", time: "HH:MM" } in LOCAL time */
 const isoToLocalInputs = (iso) => {
   const d = new Date(iso);
   const year = d.getFullYear();
@@ -28,7 +26,16 @@ const isoToLocalInputs = (iso) => {
 };
 
 /**
- * Modal component for creating OR editing a poll
+ * Modal component for creating OR editing a poll it has the original event time, the additional date/times, and the poll closing time.
+ * 
+ * @param {boolean} isOpen - for whether the modal is open or not 
+ * @param {Function} onClose - function to call when closing the modal when the user clicks the x button or the cancel button
+ * @param {string} eventId - the id of the event
+ * @param {Object} event - the event object
+ * @param {Function} onCreated - function to call when creating a poll when the user clicks the create poll button so it can refresh the poll list
+ * @param {Object} poll - the poll object
+ * @param {Function} onUpdated - function to call when updating a poll when the user clicks the save changes button so it can refresh the poll list
+ * @returns {JSX.Element} - the create poll modal component
  */
 function CreatePollModal({
   isOpen,
@@ -44,7 +51,6 @@ function CreatePollModal({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState({ options: false });
   
-  // Refs for date/time inputs
   const closingDateRef = useRef(null);
   const closingTimeRef = useRef(null);
   const optionRefs = useRef(new Map());
@@ -65,13 +71,11 @@ function CreatePollModal({
     return optionRefs.current.get(key);
   };
 
-  // NEW: poll closing date/time (optional)
   const [closingDate, setClosingDate] = useState("");
   const [closingTime, setClosingTime] = useState("");
 
   const isEditing = !!poll;
 
-  // compute ISO versions of event start and end date (original slot)
   const originalStartISO = (() => {
     if (!event?.date || !event?.startTime) return null;
     return toISO(event.date, convertTo24hourFormat(event.startTime));
@@ -82,7 +86,6 @@ function CreatePollModal({
     return toISO(event.date, convertTo24hourFormat(event.endTime));
   })();
 
-  // Reset / prefill the modal state every time it opens
   useEffect(() => {
     if (!isOpen) return;
 
@@ -101,7 +104,6 @@ function CreatePollModal({
         setClosingTime(time);
       }
 
-      // Build options from poll.options except the "original" one
       const extraOptions = (poll.options || []).filter(
         (opt) => opt.id !== "original"
       );
@@ -120,14 +122,13 @@ function CreatePollModal({
         return {
           id: opt.id || crypto.randomUUID(),
           date,
-          start: startTime, // "HH:MM"
-          end: endTime,     // "HH:MM"
+          start: startTime, 
+          end: endTime,
         };
       });
 
       setOptions(mapped);
     } else {
-     // create mode: start with one row prefilled from the event's original time
        const defaultDate = event?.date || "";
        const defaultStart = event?.startTime
          ? convertTo24hourFormat(event.startTime)
@@ -154,7 +155,6 @@ function CreatePollModal({
 
   const addOption = () => {
     setOptions((prev) => {
-      // 1) If there is a previous option, reuse its values
       const last = prev[prev.length - 1];
 
       const baseDate =
@@ -196,7 +196,7 @@ function CreatePollModal({
     if (error.options) setError((e) => ({ ...e, options: false }));
   };
 
-  // called when user clicks "Create Poll" / "Save Changes"
+  // called when user clicks create poll or save changes button
   const handleCreatePoll = async () => {
     const original =
       originalStartISO && originalEndISO
@@ -224,9 +224,10 @@ function CreatePollModal({
 
     const newErrors = { options: allOptions.length === 0 };
     setError(newErrors);
-    if (Object.values(newErrors).some(Boolean)) return;
 
-    // build closingAt ISO if provided
+    if (Object.values(newErrors).some(Boolean)) 
+      return;
+
     let closingAt = null;
     if (closingDate && closingTime) {
       closingAt = toISO(closingDate, closingTime);
@@ -234,7 +235,6 @@ function CreatePollModal({
 
     setSubmitting(true);
     try {
-      // figure out canonical owner + eventKey
       const ownerId =
         event?.createdBy?.userId ||
         event?.createdBy?.uid ||
@@ -251,7 +251,7 @@ function CreatePollModal({
         title: event?.title ? `${event.title} — Time Poll` : "Time Poll",
         options: allOptions,
         multiSelect: true,
-        closingAt, // NEW
+        closingAt
       };
 
       if (isEditing && poll) {
@@ -261,12 +261,18 @@ function CreatePollModal({
           poll.id || poll.pollId,
           payload
         );
-        if (!updated) throw new Error("updatePoll returned null/undefined");
+
+        if (!updated) 
+          throw new Error("updatePoll returned null/undefined");
+
         onUpdated?.(updated);
-        console.log("[CreatePollModal] poll updated:", updated.id);
+        console.log("Poll updated:", updated.id);
       } else {
         const created = await createPoll(ownerId, eventKey, payload);
-        if (!created) throw new Error("createPoll returned null/undefined");
+
+        if (!created) 
+          throw new Error("createPoll returned null/undefined");
+
         onCreated?.(created);
         console.log("[CreatePollModal] poll created:", created.id);
       }
@@ -274,7 +280,6 @@ function CreatePollModal({
       handleClose();
     } catch (e) {
       console.error("Failed to save poll:", e);
-      alert("Failed to save poll.");
       setSubmitting(false);
     }
   };
@@ -303,7 +308,7 @@ function CreatePollModal({
             </button>
           </div>
 
-          {/* Original event time (locked) */}
+          {/* Original event time */}
           <div className="space-y-2 mb-4">
             <label className="block text-sm font-medium text-app-text">
               Original Date &amp; Time (from event)
@@ -402,6 +407,7 @@ function CreatePollModal({
             })}
 
             <div>
+              {/* add another time button */}
               <button
                 type="button"
                 onClick={addOption}
@@ -419,7 +425,7 @@ function CreatePollModal({
             )}
           </div>
 
-          {/* NEW: Poll closing time */}
+          {/* Poll closing time */}
           <div className="space-y-2 mb-4">
             <label className="block text-sm font-medium text-app-text">
               Poll closing time (optional)

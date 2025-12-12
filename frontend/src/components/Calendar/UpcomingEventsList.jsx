@@ -3,7 +3,21 @@ import { getColorClasses, isLightColor } from "../../utils/Utils";
 import Avatar from "../Header/Avatar";
 import { parseTime } from "./CalendarUtils";
 
+/**
+ * UpcomingEventsList component for the calendar page. It lists all upcoming events.
+ * 
+ * @param {Array} events - the events to list
+ * @param {Function} onDeleteEvent - the function to call when an event is deleted
+ * @param {Function} onEditEvent - the function to call when an event is edited
+ * @param {Function} onLeaveEvent - the function to call when an event is left
+ * @param {boolean} hideContainer - whether to hide the container or not
+ * 
+ * @returns {JSX.Element} - the jsx element for the upcoming events list component
+ */
+
 function UpcomingEventsList({ events, onDeleteEvent, onEditEvent, onLeaveEvent, hideContainer = false }) {
+  
+  // filtering and sorting the events
   const upcomingEvents = events
     .filter((event) => {
       if (!event.endTime || !event.startTime || !event.date) {
@@ -30,6 +44,7 @@ function UpcomingEventsList({ events, onDeleteEvent, onEditEvent, onLeaveEvent, 
       return getDateTime(a) - getDateTime(b);
     });
 
+  // content for the upcoming events list
   const content = (
     <div className="space-y-3">
         {upcomingEvents.length === 0 ? (
@@ -45,10 +60,9 @@ function UpcomingEventsList({ events, onDeleteEvent, onEditEvent, onLeaveEvent, 
               ? { backgroundColor: event.color }
               : { backgroundColor: `${getColorClasses(event.color || 'blue', 'bgHex')}30` };
             
-            // Determine text color based on background brightness
             const textColorClass = isCustomColor && isLightColor(event.color)
-              ? "text-gray-900" // Dark text for light backgrounds
-              : "text-slate-50"; // Light text for dark backgrounds
+              ? "text-gray-900" // dark text for light backgrounds
+              : "text-slate-50"; // light text for dark backgrounds
 
             return (
             <div

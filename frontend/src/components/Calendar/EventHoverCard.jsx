@@ -4,6 +4,16 @@ import GoogleMapEmbed from "./GoogleMapEmbed";
 import { getColorClasses, formatDate, isLightColor } from "../../utils/Utils";
 import { parseTime } from "./CalendarUtils";
 
+/**
+ * EventHoverCard component for the calendar page. It has the event title, the event time, the event attendees, and the event color.
+ * 
+ * @param {Object} event - the event object
+ * @param {Object} position - the position of the hover card
+ * @param {boolean} isFading - whether the hover card is fading or not
+ * @param {Function} onMouseEnter - the function to call for when the mouse enters the hover card
+ * @param {Function} onMouseLeave - the function to call for when the mouse leaves the hover card
+ */
+
 function EventHoverCard({
   event,
   position,
@@ -13,12 +23,13 @@ function EventHoverCard({
   onEditEvent,
   onDeleteEvent,
   onLeaveEvent,
-  onCreatePoll, // added for poll feature
+  onCreatePoll,
   cardRef,
 }) {
-  if (!event) return null;
+  if (!event) 
+    return null;
 
-  // Check if event has started to determine if we should show pending status
+  // check if event has started to determine if we should show pending status
   const hasEventStarted = () => {
     if (!event.date || !event.startTime) return false;
 
@@ -33,7 +44,7 @@ function EventHoverCard({
   const eventColor = event.color || 'blue';
   const isCustomColor = eventColor && eventColor.startsWith("#");
   
-  // Determine text color based on background brightness
+  // determine the text color
   const isLight = isCustomColor && isLightColor(eventColor);
   const textColorClass = isLight ? "text-gray-900" : "text-white";
   const textMutedClass = isLight ? "text-gray-700" : "text-gray-100";
@@ -64,7 +75,7 @@ function EventHoverCard({
         </h3>
 
         <div className="flex gap-2 flex-shrink-0">
-          {/* added: create poll button */}
+          {/* create poll button */}
           {onCreatePoll && event?.isGroupEvent &&(
             <button
               onClick={() => onCreatePoll(event)}
@@ -83,6 +94,7 @@ function EventHoverCard({
             <Pencil className={`w-4 h-4 ${isLight ? "text-gray-900" : "text-white"}`} />
           </button>
 
+          {/* leave group event  or delete event button */}
           {event.isSharedEvent ? (
             <button
               onClick={() => onLeaveEvent && onLeaveEvent(event.seriesId || event.id)}
@@ -103,6 +115,7 @@ function EventHoverCard({
         </div>
       </div>
 
+      {/* group event badge */}
       {(event.isSharedEvent || event.attendees?.length > 0) && (
         <div className="mb-4">
           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${
@@ -115,6 +128,7 @@ function EventHoverCard({
         </div>
       )}
 
+      {/* date */}
       <div className="mb-3">
         <div className={`flex items-center ${textMutedClass} text-sm mb-1`}>
           <CalendarIcon className={`w-4 h-4 mr-2 ${iconColorClass}`} />
@@ -125,6 +139,7 @@ function EventHoverCard({
         </div>
       </div>
 
+      {/* time */}
       <div className="mb-3">
         <div className={`flex items-center ${textMutedClass} text-sm mb-1`}>
           <Clock className={`w-4 h-4 mr-2 ${iconColorClass}`} />
@@ -135,6 +150,7 @@ function EventHoverCard({
         </div>
       </div>
 
+      {/* virtual event or location */}
       <div className="mb-3">
         <div className={`flex items-center ${textMutedClass} text-sm mb-1`}>
           {event.isVirtual ? (
@@ -157,6 +173,7 @@ function EventHoverCard({
         )}
       </div>
 
+      {/* description */}
       {event.description && (
         <div className="mb-3">
           <div className={`${textMutedClass} text-sm font-medium mb-1`}>
@@ -168,6 +185,7 @@ function EventHoverCard({
         </div>
       )}
 
+      {/* attendees list */}
       {visibleAttendees && visibleAttendees.length > 0 && (
         <div className="mb-3">
           <div className={`flex items-center ${textMutedClass} text-sm mb-2`}>

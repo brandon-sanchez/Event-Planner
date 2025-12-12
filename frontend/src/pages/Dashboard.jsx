@@ -5,6 +5,12 @@ import { collection, where, onSnapshot, query } from 'firebase/firestore';
 import { useState, useEffect } from 'react';
 import { getCurrentUserId } from '../utils/Utils';
 
+/**
+ * Dashboard page component for the app. It has the header and the calendar.
+ * 
+ * @returns {JSX.Element} - the jsx element for the dashboard page component
+ */
+
 function Dashboard() {
   //state for invitations
   const [invitations, setInvitations] = useState([]);
@@ -41,10 +47,16 @@ function Dashboard() {
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 text-slate-100 relative">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(244,114,182,0.12),transparent_30%),radial-gradient(circle_at_80%_0%,rgba(244,63,94,0.12),transparent_25%)] pointer-events-none" />
       <div className="relative">
+        {/* header */}
         <Header invitations={invitations} />
+
+        {/* main content */}
         <main className="flex justify-center py-8">
           <div className="w-[1400px] min-w-[1400px] max-w-[1400px] bg-slate-900/60 border border-slate-800 rounded-3xl shadow-2xl shadow-black/40 p-6">
+
+            {/* calendar */}
             <Calendar />
+            
           </div>
         </main>
       </div>

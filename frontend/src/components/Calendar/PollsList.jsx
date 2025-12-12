@@ -13,7 +13,7 @@ import CreatePollModal from "./CreatePollModal";
 import { Calendar as CalendarIcon, Clock, MapPin, Video } from "lucide-react";
 import Checkbox from "../Checkbox";
 
-// helper to format ISO date strings to readable form
+//perhaps you might want to move these to the util file in the future like into CalendarUtils or Utils file
 const fmt = (iso) => {
   try {
     const d = new Date(iso);
@@ -28,7 +28,6 @@ const fmt = (iso) => {
   }
 };
 
-// helper to format date from ISO to "Dec 11, 2025" format
 const formatDate = (iso) => {
   try {
     const d = new Date(iso);
@@ -38,7 +37,6 @@ const formatDate = (iso) => {
   }
 };
 
-// helper to format time from ISO to "9:12 PM" format
 const formatTime = (iso) => {
   try {
     const d = new Date(iso);
@@ -48,7 +46,6 @@ const formatTime = (iso) => {
   }
 };
 
-// helper: convert ISO → { date: "YYYY-MM-DD", time: "HH:MM" } in LOCAL time
 const isoToLocalInputs = (iso) => {
   const d = new Date(iso);
   const year = d.getFullYear();
@@ -63,8 +60,16 @@ const isoToLocalInputs = (iso) => {
   };
 };
 
-// lists all polls for loaded events
-// lists event, time options, and allows for voting
+/**
+ * PollsList component for the calendar page. It lists all polls for loaded events, event, time options, and allows for voting.
+ * 
+ * @param {Array} events - the events to list polls for
+ * @param {number} refresh - the refresh counter to force a refresh of the polls
+ * @param {boolean} hideContainer - whether to hide the container or not
+ * 
+ * @returns {JSX.Element} - the jsx element for the polls list component
+ */
+
 function PollsList({ events, refresh = 0, hideContainer = false }) {
   const [polls, setPolls] = useState([]);
   const [votesByPoll, setVotesByPoll] = useState({});
@@ -85,12 +90,12 @@ function PollsList({ events, refresh = 0, hideContainer = false }) {
 
     const load = async () => {
       setLoading(true);
-      console.log(
-        "[PollsList] effect run. events.length=",
-        events.length,
-        "refresh=",
-        refresh
-      );
+      // console.log(
+      //   "effect run. events.length=",
+      //   events.length,
+      //   "refresh=",
+      //   refresh
+      // );
 
       try {
         // Fetch all polls in parallel
@@ -105,18 +110,18 @@ function PollsList({ events, refresh = 0, hideContainer = false }) {
 
           if (!ownerId || !eventKey) {
             console.warn(
-              "[PollsList] skipping event missing ownerId/eventKey",
+              "Skipping event missing ownerId/eventKey",
               ev
             );
             return [];
           }
 
-          console.log(
-            "[PollsList] fetching polls for event:",
-            eventKey,
-            "owner:",
-            ownerId
-          );
+          // console.log(
+          //   "[PollsList] fetching polls for event:",
+          //   eventKey,
+          //   "owner:",
+          //   ownerId
+          // );
           const ps = await getEventPolls(ownerId, eventKey);
           return (ps || []).map((p) => ({
             ...p,
@@ -133,7 +138,7 @@ function PollsList({ events, refresh = 0, hideContainer = false }) {
           setPolls(all);
         }
 
-        // Fetch all votes in parallel
+        // Fetch all votes
         const votePromises = all.map(async (p) => {
           const pollKey = `${p.ownerId}:${p.eventId}:${p.pollId}`;
           const votes = await getPollVotes(p.ownerId, p.eventId, p.pollId);
@@ -144,7 +149,7 @@ function PollsList({ events, refresh = 0, hideContainer = false }) {
         const votesMap = Object.fromEntries(voteEntries);
 
         if (!cancelled) {
-          console.log("[PollsList] total polls loaded:", all.length);
+          //console.log("total polls loaded:", all.length);
           setVotesByPoll(votesMap);
         }
       } catch (e) {
@@ -223,7 +228,6 @@ function PollsList({ events, refresh = 0, hideContainer = false }) {
 
         const maxVotes = Math.max(0, ...Object.values(counts));
         if (maxVotes === 0) {
-          // no votes → freeze poll, don't change event time
           await updatePoll(p.ownerId, p.eventId, p.pollId, {
             status: "finalized",
             finalizedOptionId: null,
@@ -241,7 +245,7 @@ function PollsList({ events, refresh = 0, hideContainer = false }) {
         // options with the highest vote count
         const candidates = options.filter((opt) => counts[opt.id] === maxVotes);
 
-        // tie-breaker: earliest startISO
+        // tie-breaker: earliest start 
         let winner = candidates[0];
         for (const opt of candidates) {
           const optDate = new Date(opt.startISO);
@@ -264,7 +268,7 @@ function PollsList({ events, refresh = 0, hideContainer = false }) {
         });
 
         if (!ev) {
-          console.warn("[PollsList] auto finalize: event not found for poll", p);
+          //console.warn("auto finalize: event not found for poll", p);
           // still finalize poll even if we can't update event
           await updatePoll(p.ownerId, p.eventId, p.pollId, {
             status: "finalized",
@@ -319,18 +323,23 @@ function PollsList({ events, refresh = 0, hideContainer = false }) {
     }
   }, [polls, votesByPoll, events]);
 
+
+  // opening the edit poll modal
   const openEditPoll = (poll, ev) => {
     setEditingPoll(poll);
     setEditingEvent(ev);
     setIsEditModalOpen(true);
   };
 
+
+  // closing the edit poll modal
   const closeEditPoll = () => {
     setIsEditModalOpen(false);
     setEditingPoll(null);
     setEditingEvent(null);
   };
 
+  // handling the poll update
   const handlePollUpdated = (updated) => {
     if (!editingPoll) return;
 
@@ -345,10 +354,12 @@ function PollsList({ events, refresh = 0, hideContainer = false }) {
     closeEditPoll();
   };
 
+  // requesting to delete a poll
   const requestDeletePoll = (poll) => {
     setPendingDeletePoll(poll);
   };
 
+  // confirmation to delete a poll
   const confirmDeletePoll = async () => {
     if (!pendingDeletePoll) return;
     setIsDeleting(true);
@@ -372,6 +383,7 @@ function PollsList({ events, refresh = 0, hideContainer = false }) {
     setPendingDeletePoll(null);
   };
 
+  // toggling the selection of an option
   const toggleSelect = (pollKey, optionId) => {
     setSelectedByPoll((prev) => {
       const next = new Set(prev[pollKey] || []);
@@ -381,6 +393,7 @@ function PollsList({ events, refresh = 0, hideContainer = false }) {
     });
   };
 
+  // submitting a vote
   const submitVote = async (p) => {
     const pollKey = `${p.ownerId}:${p.eventId}:${p.pollId}`;
     const selected = Array.from(selectedByPoll[pollKey] || []);
@@ -398,6 +411,7 @@ function PollsList({ events, refresh = 0, hideContainer = false }) {
     }
   };
 
+  // getting the voters for an option
   const votersFor = (pollKey, optionId) => {
     const list = votesByPoll[pollKey] || [];
     return list
@@ -409,7 +423,7 @@ function PollsList({ events, refresh = 0, hideContainer = false }) {
       .map((v) => v.voterName || v.voterEmail || v.voterId);
   };
 
-  // owner-only: manual "Use this time"
+  // the owner can use this time to update the event time
   const handleUseThisTime = async (poll, ev, opt) => {
     if (!ev) return;
 
@@ -460,7 +474,6 @@ function PollsList({ events, refresh = 0, hideContainer = false }) {
       );
     } catch (e) {
       console.error("Failed to apply poll time:", e);
-      alert("Failed to apply this time to the event.");
     }
   };
 
@@ -485,9 +498,11 @@ function PollsList({ events, refresh = 0, hideContainer = false }) {
 
   const content = (
     <>
+      {/* no polls */}
       {visiblePolls.length === 0 ? (
         <div className={hideContainer ? "text-slate-400 text-sm" : "text-gray-400 text-sm"}>No polls.</div>
       ) : (
+        // polls list
         <div className="space-y-6">
           {visiblePolls.map((p) => {
             const ev = events.find((e) => {
@@ -517,6 +532,7 @@ function PollsList({ events, refresh = 0, hideContainer = false }) {
             const closingText = hasClosingAt ? fmt(p.closingAt) : null;
 
             return (
+              // poll item
               <div
                 key={pollKey}
                 className={`relative rounded-xl p-5 group border shadow-lg shadow-black/30 flex flex-col space-y-4 ${hideContainer ? "border-slate-800/60 bg-slate-800/30" : "border-gray-700 bg-gray-800/50"}`}
@@ -558,6 +574,7 @@ function PollsList({ events, refresh = 0, hideContainer = false }) {
                       </div>
                     )}
 
+                    {/* final time */}
                     {isFinalized && finalOption && (
                       <div className="text-xs text-green-400 mb-1">
                         Final time: {fmt(finalOption.startISO)} —{" "}
@@ -565,6 +582,7 @@ function PollsList({ events, refresh = 0, hideContainer = false }) {
                       </div>
                     )}
 
+                    {/* poll closed with no votes */}
                     {isFinalized && !finalOption && (
                       <div className="text-xs text-yellow-400 mb-1">
                         Poll closed with no votes. Event time was not changed.
@@ -573,7 +591,9 @@ function PollsList({ events, refresh = 0, hideContainer = false }) {
                   </div>
 
                   {canManage && (
+                    // edit and delete buttons
                     <div className="flex gap-1 flex-shrink-0">
+                      {/* edit button */}
                       <button
                         type="button"
                         onClick={() => openEditPoll(p, ev)}
@@ -584,6 +604,8 @@ function PollsList({ events, refresh = 0, hideContainer = false }) {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                         </svg>
                       </button>
+
+                      {/* delete button */}
                       <button
                         type="button"
                         onClick={() => requestDeletePoll(p)}

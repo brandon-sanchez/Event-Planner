@@ -1,6 +1,14 @@
 import { generateCalendarDays, getEventsForDay } from "./CalendarUtils";
 import EventCard from "./EventCard";
 
+/**
+ * Component for displaying the calendar grid. Its a component within the calendar page
+ * 
+ * @param {Date} currentDate - the current date
+ * @param {Array} events - the events that are displayed in the grid
+ * @param {Function} onEventHover - the function to call when an event is hovered
+ * @param {Function} onEventLeave - the function to call when an event is left
+ */
 function CalendarGrid({
   currentDate,
   events,

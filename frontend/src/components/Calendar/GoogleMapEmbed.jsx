@@ -1,12 +1,23 @@
 import { useState, useEffect } from "react";
 import {Loader2} from "lucide-react";
 
+/**
+ * GoogleMapEmbed component for the calendar page. It is used to display a Google Map of the event location inside of the event hover card.
+ * 
+ * @param {string} address - the address of the event location
+ * @param {string} className - the class name of the component
+ * @param {boolean} isLight - whether the background is light or dark
+ * 
+ * @returns {JSX.Element} - the jsx element for the GoogleMapEmbed component
+ */
+
 const GoogleMapEmbed = ({ address, className = "", isLight = false }) => {
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
   const [userLocation, setUserLocation] = useState(null);
   const [activeTab, setActiveTab] = useState("place");
   const [mapLoaded, setMapLoaded] = useState(false);
 
+  // getting the location of the user
   useEffect(() => {
     if (navigator.geolocation && activeTab === "directions") {
       navigator.geolocation.getCurrentPosition((position) => {
@@ -37,6 +48,7 @@ const GoogleMapEmbed = ({ address, className = "", isLight = false }) => {
   return (
     <div className={className}>
       <div className={`flex mb-2 rounded-lg p-1 ${isLight ? "bg-gray-800/20 border border-gray-700/30" : "bg-white/10 backdrop-blur-sm"}`}>
+        {/* location button */}
         <button
           className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-md text-xs font-medium transition-all duration-200 ${
             activeTab === "place"
@@ -52,6 +64,7 @@ const GoogleMapEmbed = ({ address, className = "", isLight = false }) => {
           Location
         </button>
 
+        {/* directions button */}
         <button
           className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-md text-xs font-medium transition-all duration-200 ${
             activeTab === "directions"
@@ -67,7 +80,8 @@ const GoogleMapEmbed = ({ address, className = "", isLight = false }) => {
           Directions
         </button>
       </div>
-      
+
+      {/* map container */}
       <div className={`relative rounded-lg h-55 w-full ${isLight ? "bg-gray-800/20" : "bg-gray-700/30"}`}>
         {!mapLoaded && (
           <div className={`absolute inset-0 flex items-center justify-center rounded-lg z-10 ${isLight ? "bg-gray-900/30" : "bg-gray-800/50"}`}>
@@ -75,6 +89,7 @@ const GoogleMapEmbed = ({ address, className = "", isLight = false }) => {
           </div>
         )}
 
+        {/* map iframe */}
         <iframe
           className="rounded-lg h-55 w-full"
           src={mapUrl}

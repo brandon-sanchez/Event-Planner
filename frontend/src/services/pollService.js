@@ -12,7 +12,7 @@ import {
   deleteDoc,
 } from "firebase/firestore";
 
-// Reference to event owner's polls for a given event
+// reference to event owner polls for a given event. So each user has their own collection of polls but the group polls are synced across all attendees.
 const getEventPollsCollection = (ownerUserId, eventKey) => {
   return collection(db, "users", ownerUserId, "events", eventKey, "polls");
 };
@@ -25,7 +25,7 @@ const checkAuth = () => {
   return user.uid;
 };
 
-// Create poll: users/{ownerId}/events/{eventKey}/polls/{pollId}
+// creates a new poll for an event
 const createPoll = async (ownerId, eventKey, pollData) => {
   try {
     const currentUserId = checkAuth();
@@ -44,8 +44,6 @@ const createPoll = async (ownerId, eventKey, pollData) => {
       createdBy: currentUserId,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
-
-      // NEW: optional auto-closing timestamp (ISO string)
       closingAt: pollData.closingAt || null,
     };
 
@@ -57,7 +55,7 @@ const createPoll = async (ownerId, eventKey, pollData) => {
   }
 };
 
-// Read all polls for an event (newest first)
+// Read all polls for an event with the newest first
 const getEventPolls = async (ownerId, eventKey) => {
   const q = query(
     getEventPollsCollection(ownerId, eventKey),
@@ -67,7 +65,7 @@ const getEventPolls = async (ownerId, eventKey) => {
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 };
 
-// Vote: users/{ownerId}/events/{eventKey}/polls/{pollId}/votes/{voterId}
+// votes on a poll
 const voteOnPoll = async (ownerId, eventKey, pollId, selectedOptionIds) => {
   try {
     const currentUserId = checkAuth();
@@ -99,7 +97,6 @@ const voteOnPoll = async (ownerId, eventKey, pollId, selectedOptionIds) => {
       { merge: true }
     );
 
-    // touch poll.updatedAt (optional)
     const pollRef = doc(
       db,
       "users",
@@ -122,7 +119,7 @@ const voteOnPoll = async (ownerId, eventKey, pollId, selectedOptionIds) => {
   }
 };
 
-// Read votes for a poll → [{ voterId, selectedOptionIds, updatedAt }]
+// reads the votes for a poll
 const getPollVotes = async (ownerId, eventKey, pollId) => {
   const votesCol = collection(
     db,
@@ -137,7 +134,8 @@ const getPollVotes = async (ownerId, eventKey, pollId) => {
   const snap = await getDocs(votesCol);
   return snap.docs.map((d) => ({ voterId: d.id, ...d.data() }));
 };
-// Update a poll's fields (title, options, status, etc.)
+
+// update the poll with the new data
 const updatePoll = async (ownerId, eventKey, pollId, updates) => {
   try {
     checkAuth(); // just to be sure user is logged in

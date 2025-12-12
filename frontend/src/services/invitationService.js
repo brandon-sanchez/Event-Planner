@@ -12,7 +12,7 @@ const sendInvitation = async (recipientEmail, eventData) => {
     const senderId = currentUser.uid;
 
     if (!eventData?.id) {
-      throw new Error('Missing event id when sending invitation.');
+      throw new Error('Missing event id');
     }
 
     const recipientUser = await findUserByEmail(recipientEmail);
@@ -59,7 +59,7 @@ const sendInvitation = async (recipientEmail, eventData) => {
       recipientId: recipientUser.id
     };
   } catch (error) {
-    console.log('Error sending invitation to', recipientEmail, ':', error);
+    console.log('Error sending invite to', recipientEmail, ':', error);
     return {
       success: false,
       error: error.message,
@@ -87,11 +87,11 @@ const sendMultipleInvitations = async (recipientEmails, eventData) => {
       }
     }
 
-    console.log(`Sent ${results.successful.length} invitations, ${results.failed.length} failures.`);
+    //console.log(`Sent ${results.successful.length} invitations, ${results.failed.length} failures.`);
 
     return results;
   } catch (error) {
-    console.log('Error sending multiple invitations:', error);
+    console.log('Error sending multiple invites:', error);
     throw error;
   }
 };
@@ -144,7 +144,7 @@ const acceptInvitation = async (invitationId) => {
 
     if (!isStillInvited) {
       throw new Error(
-        'You have been removed from this event by the organizer.'
+        'You have been removed from this event.'
       );
     }
 
@@ -199,20 +199,20 @@ const acceptInvitation = async (invitationId) => {
           await updateDoc(targetRef, updatedEventPayload);
         }
       } catch (error) {
-        console.error(`Failed to sync acceptance to user ${targetId}:`, error);
+        console.error(`Failed to sync with user ${targetId}:`, error);
       }
     }
 
     await deleteDoc(invitationRef);
 
-    console.log('Invitation accepted and attendeeIds synced to all copies');
+    // console.log('Invitation accepted and attendeeIds synced to all copies');
 
     return {
       id: sharedEventId,
       ...currentEventData
     };
   } catch (error) {
-    console.log('Error accepting invitation:', error);
+    console.log('Error accepting invite:', error);
     throw error;
   }
 };
@@ -292,7 +292,7 @@ const declineInvitation = async (invitationId) => {
 
     await deleteDoc(invitationRef);
 
-    console.log('Invitation declined:', invitationId);
+    //console.log('Invitation declined:', invitationId);
   } catch (error) {
     console.log('Error declining invitation:', error);
     throw error;

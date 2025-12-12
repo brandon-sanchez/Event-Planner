@@ -1,6 +1,15 @@
 import Avatar from "../Header/Avatar";
 import { X } from "lucide-react";
 
+/**
+ * The user chip component for the event modal. It is used to display a user in the attendees list. Was also going to be used elsewhere in the app like user search dropdown but didn't end up having enough time to implement it the where it was going to be used elsewhere.
+ * 
+ * @param {Object} user - the user to display
+ * @param {Function} onRemove - the function to call when the user is removed
+ * 
+ * @returns {JSX.Element} - the jsx element for the user chip component
+ */
+
 function UserChip({ user, onRemove }) {
   const { displayName, email, photoURL } = user;
 
@@ -22,6 +31,7 @@ function UserChip({ user, onRemove }) {
         </span>
       </div>
 
+      {/* X/remove button */}
       <button
         onClick={handleRemove}
         className="flex-shrink-0 text-app-muted hover:text-app-text transition-colors"

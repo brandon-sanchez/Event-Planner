@@ -5,6 +5,15 @@ import { acceptInvitation, declineInvitation } from "../../services/invitationSe
 import { db } from "../../config/firebase";
 import { doc, onSnapshot } from "firebase/firestore";
 
+/**
+ * InvitationsPanel component for the dashboard page. It appears in the dropdown of the notification bell.
+ * 
+ * @param {Array} invitations - the invitations for the user that are visible in the dropdown
+ * @param {Function} onInvitationAccepted - the function to call for when an invitation is accepted
+ * @param {Function} onInvitationDeclined - the function to call for when an invitation is declined
+ * @param {boolean} isInDropdown - whether the invitations panel is in the dropdown or not
+ * @returns {JSX.Element} - the jsx element for the invitations panel component
+ */
 function InvitationsPanel({
   invitations,
   onInvitationAccepted,
@@ -14,7 +23,7 @@ function InvitationsPanel({
   const [processingId, setProcessingId] = useState(null);
   const [eventDetails, setEventDetails] = useState({});
 
-  // subscribe to live event data for each invitation so updates show up
+  // subscribe to the invitations
   useEffect(() => {
     if (!invitations || invitations.length === 0) {
       setEventDetails({});
@@ -64,7 +73,7 @@ function InvitationsPanel({
   const visibleInvitations = invitations.filter((inv) => eventDetails[inv.id] !== null);
 
   const handleAccept = async (invitation) => {
-    // prevent acceptance if event no longer exists
+    // prevent acceptance if the event no longer exists
     if (eventDetails[invitation.id] === null) {
       alert("This event is no longer available.");
       return;
@@ -75,13 +84,13 @@ function InvitationsPanel({
 
       const createdEvent = await acceptInvitation(invitation.id);
 
-      console.log("Invitation accepted and event created:", createdEvent);
+      //console.log("Invitation accepted and event created:", createdEvent);
 
       if (onInvitationAccepted) {
         onInvitationAccepted(createdEvent);
       }
     } catch (error) {
-      console.log("Error processing acceptance of invitation:", error);
+      console.log("Error accepting invitation:", error);
     } finally {
       setProcessingId(null);
     }
@@ -126,12 +135,14 @@ function InvitationsPanel({
         isInDropdown ? "" : "bg-slate-900/60 border border-slate-800 rounded-3xl p-6 shadow-2xl shadow-black/40"
       }
     >
+      {/* title */}
       {!isInDropdown && (
         <h3 className="text-lg font-semibold text-slate-100 mb-4">
           📬 Pending Invitations ({visibleInvitations.length})
         </h3>
       )}
 
+      {/* invitations list */}
       <div className="space-y-3">
         {visibleInvitations.map((invitation) => {
           const event = eventDetails[invitation.id];
@@ -150,7 +161,7 @@ function InvitationsPanel({
                 isInDropdown ? "text-sm" : ""
               }`}
             >
-              {/* Event Title with Color Indicator */}
+              {/* Event Title */}
               <div className="flex items-start justify-between mb-2">
                 <div className="flex items-center space-x-2 flex-1 min-w-0">
                   <div

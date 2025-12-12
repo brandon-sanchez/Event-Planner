@@ -3,6 +3,15 @@ import { getColorClasses, isLightColor } from "../../utils/Utils";
 import { parseTime } from "./CalendarUtils";
 import Avatar from "../Header/Avatar";
 
+/**
+ * EventCard component for the calendar page it has the event title, the event time, the event attendees, and the event color.
+ * 
+ * @param {Object} event - the event object
+ * @param {Function} onMouseEnter - function to call for when the mouse enters the event card
+ * @param {Function} onMouseLeave - function to call for when the mouse leaves the event card
+ * @returns {JSX.Element} - the event card component
+ */
+
 function EventCard({ event, onMouseEnter, onMouseLeave }) {
   const eventColor = event.color || 'blue';
   const isCustomColor = eventColor && eventColor.startsWith("#");
@@ -20,10 +29,10 @@ function EventCard({ event, onMouseEnter, onMouseLeave }) {
     backgroundColor: hexToRgba(bgHex, 0.6)
   };
 
-  // Determine text color based on background brightness
+  // made this so its easier to read the text on the event card based on the background color.
   const textColorClass = isCustomColor && isLightColor(eventColor)
-    ? "text-gray-900" // Dark text for light backgrounds
-    : "text-white/90"; // Light text for dark backgrounds
+    ? "text-gray-900" // dark text for light backgrounds
+    : "text-white/90"; // light text for dark backgrounds
 
   // Same rule as the hover card: once the event starts, hide folks still pending.
   const hasEventStarted = () => {
@@ -37,6 +46,7 @@ function EventCard({ event, onMouseEnter, onMouseLeave }) {
     return now >= eventStart;
   };
 
+  // hiding the people who are pending once the event has started but they can appear in the attendees list after they accept the invite.
   const visibleAttendees = hasEventStarted()
     ? event.attendees?.filter((attendee) => attendee.status !== 'pending')
     : event.attendees || [];
@@ -49,6 +59,7 @@ function EventCard({ event, onMouseEnter, onMouseLeave }) {
       style={bgStyle}
     >
       <div className="flex items-center gap-1 mb-1">
+        {/* virtual event icon  or location icon  depending on if the event is virtual or not*/}
         {event.isVirtual ? (
           <Video className="w-3 h-3 flex-shrink-0" />
         ) : (
@@ -58,6 +69,8 @@ function EventCard({ event, onMouseEnter, onMouseLeave }) {
           {event.startTime} {event.title}
         </span>
       </div>
+
+      {/* attendees list */}
       {visibleAttendees && visibleAttendees.length > 0 && (
         <div className="flex items-center -space-x-1.5">
           {visibleAttendees.slice(0, 4).map((attendee, idx) => (

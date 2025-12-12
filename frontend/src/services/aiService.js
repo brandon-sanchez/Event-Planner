@@ -3,6 +3,7 @@ import { convertTo24hourFormat, formatDateToISO } from '../components/Calendar/C
 import { searchUsers, findUserByEmail } from './userService';
 import { checkAuth } from '../utils/Utils';
 
+// function to get the openai client
 const getOpenAIClient = () => {
   const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
   if (!apiKey) {
@@ -26,7 +27,7 @@ const normalizeTimeTo24Hour = (timeStr) => {
     return cleaned;
   }
 
-  // grabbing times like "10:00 AM", "10am", etc.
+  // grabbing times like 10:00 AM, 10am, and stuff like that
   let timeRegex = /(\d{1,2}):?(\d{2})?\s*(am|pm)/i;
   let match = cleaned.match(timeRegex);
 
@@ -50,7 +51,7 @@ const normalizeTimeTo24Hour = (timeStr) => {
     }
   }
 
-  // handling a plain HH:mm without AM/PM format.
+  // handling a plain HH:mm without AM/PM format. If the time is in this format, then we can just return it as is.
   const simpleTimeMatch = cleaned.match(/^(\d{1,2}):(\d{2})$/);
   if (simpleTimeMatch) {
     const hours = parseInt(simpleTimeMatch[1], 10);
@@ -63,7 +64,7 @@ const normalizeTimeTo24Hour = (timeStr) => {
   return '';
 };
 
-// parsing common words like tomorrow or today into a real date string.
+// parsing common words like tomorrow or today into a real date string. If the date is in this format, then we can just return it as is.
 const parseRelativeDate = (dateStr) => {
   if (!dateStr) return '';
 
@@ -117,25 +118,29 @@ export const parseEventRequest = async (userInput) => {
 
       "startTime": "start time in HH:mm format (24-hour) or 12-hour format like '10:00 AM' or '2:00 PM'",
 
-      "endTime": "end time in HH:mm format (24-hour) or 12-hour format like '5:00 PM' or '17:00'. CRITICAL: When times are specified together like 'from 10am to 5pm' or '10am-5pm', extract BOTH startTime AND endTime. Only estimate 1 hour duration if endTime is truly not mentioned.",
+      "endTime": "end time in HH:mm format (24-hour) or 12-hour format like '5:00 PM' or '17:00'. IMPORTANT: When times are specified together like 'from 10am to 5pm' or '10am-5pm', extract BOTH startTime AND endTime. Only estimate 1 hour duration if endTime is truly not mentioned.",
 
-      "location": "location if mentioned, otherwise empty string (ALWAYS use proper capitalization like 'San Jose State', 'De Anza College', 'Starbucks', etc.)",
+      "location": "location if it is mentioned, otherwise empty string (ALWAYS use proper capitalization like 'San Jose State', 'De Anza College', 'Starbucks', etc.)",
 
-      "isVirtual": boolean (true if mentions virtual, online, zoom, teams, call, etc.),
+      "isVirtual": boolean (true if it mentions virtual, online, zoom, teams, call, etc.),
 
-      "isGroupEvent": boolean (true if mentions other people/attendees like "with Brandon", "meeting with team", etc.),
+      "isGroupEvent": boolean (true if it mentions other people/attendees like "with Brandon", "meeting with team", etc.),
 
-      "isRecurring": boolean (true if mentions recurring, repeating, weekly, daily, etc.),
+      "isRecurring": boolean (true if it mentions recurring, repeating, weekly, daily, etc.),
 
       "recurrence": {
         "daysOfWeek": [array of day indices: 0 = Sunday, 1 = Monday, 2 = Tuesday, 3 = Wednesday, 4 = Thursday, 5 = Friday, 6 = Saturday],
+
         "startDate": "start date in YYYY-MM-DD format (use the event date or first occurrence date)",
+
         "endDate": "end date in YYYY-MM-DD format if 'for X weeks' or 'until date' is mentioned, otherwise empty string",
+
         "occurrenceCount": number (if 'for X weeks' or 'X times' is mentioned, calculate total occurrences),
+
         "endMode": "date" if endDate is provided, "count" if occurrenceCount is provided, otherwise "count"
       },
 
-      "attendeeNames": ["array of attendee names or emails mentioned in the input, e.g., ['Brandon', 'brandon@example.com']"]
+      "attendeeNames": ["array of attendee names or emails mentioned in the input, for example: ['Brandon', 'brandon@example.com']"]
     }
 
     Current date: ${formatDateToISO(new Date())}
@@ -163,7 +168,7 @@ export const parseEventRequest = async (userInput) => {
 
     Input: "${userInput}"
 
-    Return ONLY valid JSON with no additional text.`;
+    Return ONLY valid JSON with no additional text please`;
 
 
     const response = await client.chat.completions.create({

@@ -4,6 +4,30 @@ import Autocomplete from "react-google-autocomplete";
 import Checkbox from "../../Checkbox";
 import { parseEventRequest } from "../../../services/aiService";
 
+/**
+ * This component is the basic fields for the event modal where you create or edit events. It has  fields like the title, description, date, time, and location. It also has a checkbox for virtual events and group events. It also has a checkbox for recurring events
+ * 
+ * The following are the props for this particular component:
+ * @prop {Object} newEvent - this is the new event object that is being created and/or edited
+ * 
+ * @prop {Function} setNewEvent - function that is used to set the new event object
+ * 
+ * @prop {Object} error - just an error object that is used to store the errors. Was mainly used to check if the fields were all filled in correctly and no necessary fields were left blank
+ * 
+ * @prop {Function} setError - the function is just used to set the error object and to also clear the errors if the fields are filled in
+ * 
+ * @prop {Function} updateRecurrence - a function that is used to update the recurrence object
+ * 
+ * @prop {Function} focusPicker - a function that is used to focus in other words to show the date picker and time picker.
+ * 
+ * @prop {Boolean} isAIParsing - the boolean that is used to check if the AI is going to automatically fill in the fields based on the user's input or not
+ * 
+ * @prop {Function} setIsAIParsing - the function that is used to set the isAiParsing boolean
+ * 
+ * @prop {Boolean} isEditingEvent - the boolean that is used to check if the event is being edited or not
+ * 
+ * @returns {JSX.Element} - return the jsx element for the some of the basic fields for the event modal
+ **/
 function EventBasicFields({
   newEvent,
   setNewEvent,
@@ -15,11 +39,13 @@ function EventBasicFields({
   setIsAIParsing,
   isEditingEvent = false
 }) {
+
+  //
   const dateInputRef = useRef(null);
   const startTimeRef = useRef(null);
   const endTimeRef = useRef(null);
 
-  // handling the manual AI parsing trigger
+  // for the ai button, when user clicks it to autofill the fields
   const handleAIParse = async () => {
     if (!newEvent.title || newEvent.title.trim().length === 0) {
       return;
@@ -31,58 +57,76 @@ function EventBasicFields({
       const parsedData = await parseEventRequest(newEvent.title);
       
       if (parsedData) {
-        // clearing the form first, then filling with new AI parsed data
+        
+        // update the fields with the new data from the AI except since the user might want to edit it or something
         setNewEvent((prev) => {
           const updated = {
             ...prev,
-            // Keep the title the user typed because they might want to edit it
             title: parsedData.title || prev.title,
-            //just clearing and filling other fields with AI data
+
             description: parsedData.description || '',
+
             date: parsedData.date || '',
+
             startTime: parsedData.startTime || '',
+
             endTime: parsedData.endTime || '',
+
             location: parsedData.location || '',
+
             isVirtual: parsedData.isVirtual || false,
+
             isGroupEvent: parsedData.isGroupEvent || false,
+
             attendees: [],
           };
 
-          // handling the recurrence data - clear if not recurring, otherwise fill if it is recurring
+          // if the event is recurring then we gotta update the recurrence object
           if (parsedData.isRecurring && parsedData.recurrence) {
             updated.recurrence = {
               isRecurring: true,
+
               startDate: parsedData.recurrence.startDate || parsedData.date || '',
+
               endDate: parsedData.recurrence.endDate || '',
+
               daysOfWeek: parsedData.recurrence.daysOfWeek || [],
+
               occurrenceCount: parsedData.recurrence.occurrenceCount || 2,
+
               endMode: parsedData.recurrence.endMode || 'count',
+
               exclusions: [],
             };
           } else {
-            // clear recurrence if not recurring
+            // just reseting the fields if its not recurring
             updated.recurrence = {
               isRecurring: false,
+
               startDate: '',
+
               endDate: '',
+
               daysOfWeek: [],
+
               occurrenceCount: 2,
+
               endMode: 'date',
+
               exclusions: [],
             };
           }
 
-          // adding the attendees from the AI parse
+          // if the ai was able to find any attendees from the prompt then update the list and also set the isGroupEvent to true
           if (parsedData.attendees && parsedData.attendees.length > 0) {
             updated.attendees = parsedData.attendees;
-            // just making sure isGroupEvent is true if there are attendees
             updated.isGroupEvent = true;
           }
 
           return updated;
         });
 
-        // clear any errors since fields are now filled
+        
         setError({
           title: false,
           date: false,
@@ -95,7 +139,7 @@ function EventBasicFields({
         });
       }
     } catch (error) {
-      console.error('Error parsing event with AI:', error);
+      console.error('Error trying to autofill the fields:', error);
     } finally {
       setIsAIParsing(false);
     }
@@ -126,6 +170,8 @@ function EventBasicFields({
             placeholder="e.g. Presentation with Brandon and Hari"
             disabled={isAIParsing}
           />
+
+          {/* the wand button for the ai autofill */}
           <button
             type="button"
             onClick={handleAIParse}
@@ -279,6 +325,7 @@ function EventBasicFields({
         </div>
       </div>
 
+      {/* location field for when its not a virtual event */}
       {!newEvent.isVirtual && (
         <div>
           <label

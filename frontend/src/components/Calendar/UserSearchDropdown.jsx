@@ -4,6 +4,17 @@ import Avatar from "../Header/Avatar";
 import { searchUsers } from "../../services/userService";
 import { getCurrentUserId } from "../../utils/Utils";
 
+
+/**
+ * UserSearchDropdown component for the event modal. Was going to be used elsewhere in the app but ended up not being used.
+ * 
+ * @param {Array} selectedUsers - the users that are already selected
+ * @param {Function} onUserSelect - the function to call when a user is selected
+ * 
+ * @returns {JSX.Element} - the jsx element for the user search dropdown component
+ */
+
+
 function UserSearchDropdown({ selectedUsers, onUserSelect }) {
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -16,6 +27,7 @@ function UserSearchDropdown({ selectedUsers, onUserSelect }) {
   const dropdownRef = useRef(null);
   const debounceTimer = useRef(null);
 
+  // handling the click outside of the dropdown
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -32,6 +44,7 @@ function UserSearchDropdown({ selectedUsers, onUserSelect }) {
     };
   }, [isOpen]);
 
+  // searching for users
   useEffect(() => {
     if (!searchQuery.trim()) {
       setSearchResults([]);
@@ -73,6 +86,7 @@ function UserSearchDropdown({ selectedUsers, onUserSelect }) {
     };
   }, [searchQuery, selectedUsers]);
 
+  // when a user is clicked
   const handleUserClick = (user) => {
     onUserSelect(user);
 
@@ -83,6 +97,7 @@ function UserSearchDropdown({ selectedUsers, onUserSelect }) {
     setIsOpen(false);
   };
 
+  // setting the search query
   const handleInput = (e) => {
     const value = e.target.value;
     setSearchQuery(value);

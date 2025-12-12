@@ -3,7 +3,7 @@ import { collection, addDoc, getDoc, getDocs, serverTimestamp, deleteDoc, doc, u
 import { getCurrentUserId, checkAuth } from '../utils/Utils';
 
 //Event CRUD operations for firebase
-//Each user has their own collection of events but the group events are synced across all attendees
+//Each user has their own collection of events but the group events are synced across all attendees.
 
 const getUserEventsCollection = (userId) => {
   return collection(db, 'users', userId, 'events');
@@ -149,7 +149,7 @@ const updateEvent = async (eventId, eventData) => {
             id: eventId
           });
         } catch (error) {
-          console.error(`Failed to send invitation to ${attendee.email}:`, error);
+          console.error(`Failed to send invite to ${attendee.email}:`, error);
         }
       });
 
@@ -172,7 +172,7 @@ const updateEvent = async (eventId, eventData) => {
 
     await updateDoc(eventDocRef, updatedEventData);
 
-    // sync updates to all attendees (both old and new)
+    // sync updates to all attendees
     const oldAttendeeIds = currentEventData.attendeeIds || [];
     const allAttendeeIds = [...new Set([...oldAttendeeIds, ...updatedAttendeeIds])];
 
@@ -187,7 +187,7 @@ const updateEvent = async (eventId, eventData) => {
             await updateDoc(attendeeEventRef, updatedEventData);
           }
         } catch (error) {
-          console.error(`Failed to update event for user ${attendeeId}:`, error);
+          console.error(`Failed to update event for ${attendeeId}:`, error);
         }
       });
 
@@ -226,7 +226,7 @@ const updateEvent = async (eventId, eventData) => {
             await Promise.all(deletePromises);
 
           } catch (error) {
-            console.error(`Failed to cancel invitation for ${removedAttendee.email}:`, error);
+            console.error(`Failed to cancel invite for ${removedAttendee.email}:`, error);
           }
         });
 

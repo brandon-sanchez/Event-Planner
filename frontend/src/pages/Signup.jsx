@@ -5,6 +5,12 @@ import { auth, googleProvider, githubProvider } from "../config/firebase";
 import { GoogleLoginButton, GithubLoginButton } from "react-social-login-buttons";
 import { createOrUpdateUserProfile } from "../services/userService";
 
+/**
+ * Signup page component for the app.
+ * 
+ * @returns {JSX.Element} - the jsx element for the signup page component
+ */
+
 function Signup() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -79,6 +85,8 @@ function Signup() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 flex items-center justify-center p-4">
         <div className="bg-slate-900/80 border border-slate-800 backdrop-blur-xl p-8 rounded-3xl shadow-2xl w-full max-w-md">
+
+          {/* title */}
           <h1 className="text-3xl font-bold text-rose-500 mb-6 text-center">
             Event Planner
           </h1>
@@ -91,6 +99,8 @@ function Signup() {
           )}
 
           <form onSubmit={handleSignup}>
+
+            {/* email input */}
             <div className="mb-4">
               <label className="block text-slate-200 text-sm font-semibold mb-2">
                 Email
@@ -104,6 +114,7 @@ function Signup() {
               />
             </div>
 
+            {/* password input */}
             <div className="mb-6">
               <label className="block text-slate-200 text-sm font-semibold mb-2">
                 Password
@@ -118,6 +129,7 @@ function Signup() {
               />
             </div>
 
+            {/* sign up button */}
             <button
               type="submit"
               disabled={loading}
@@ -138,6 +150,8 @@ function Signup() {
             </div>
 
             <div className="mt-6 grid grid-cols-2 gap-3">
+
+              {/* Google sign up button */}
               <GoogleLoginButton
                 onClick={handleGoogleSignup}
                 disabled={loading}
@@ -146,6 +160,7 @@ function Signup() {
                 <span>Google</span>
               </GoogleLoginButton>
 
+              {/* Github sign up button */}
               <GithubLoginButton
                 onClick={handleGithubSignup}
                 disabled={loading}
@@ -158,6 +173,8 @@ function Signup() {
 
           <p className="text-center text-slate-400 text-sm mt-6">
             Already have an account?{' '}
+
+            {/* Login button */}
             <button
               onClick={() => navigate('/')}
               className="text-rose-300 hover:text-rose-200 hover:underline font-semibold"

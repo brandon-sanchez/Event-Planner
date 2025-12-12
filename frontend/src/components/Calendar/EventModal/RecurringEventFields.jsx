@@ -2,6 +2,24 @@ import { useRef } from "react";
 import { Calendar as CalendarIcon } from "lucide-react";
 import Checkbox from "../../Checkbox";
 
+/**
+ * This RecurringEventsFields component is used for recurring events. It has fields for the start date, end date, number of occurrences, and the days of the week that the event repeats on depending on the user's selection. Its a component within the event modal
+ * 
+ * Here are the props for the component:
+ * 
+ * @prop {Object} recurrence - the recurrence object with the data for the recurring event
+ * 
+ * @prop {Function} updateRecurrence - function for updating the recurrence object
+ * 
+ * @prop {Object} error - the error object in case there are any errors
+ * 
+ * @prop {Function} setError - the function for setting the errors if there are any
+ * 
+ * @prop {Function} focusPicker - the function that shows the date picker and time picker
+ * 
+ * @returns {JSX.Element} - the jsx element for the RecurringEventFields component
+ */
+
 function RecurringEventFields({ recurrence, updateRecurrence, error, setError, focusPicker }) {
   const recurrenceStartRef = useRef(null);
   const recurrenceEndRef = useRef(null);
@@ -9,6 +27,8 @@ function RecurringEventFields({ recurrence, updateRecurrence, error, setError, f
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+        {/* start date field */}
         <div>
           <label
             htmlFor="recurrence-start"
@@ -37,6 +57,8 @@ function RecurringEventFields({ recurrence, updateRecurrence, error, setError, f
             />
           </div>
         </div>
+
+        {/* end date field*/}
         <div>
           <label className="block text-sm font-medium text-app-text mb-1">
             Ends
@@ -57,7 +79,10 @@ function RecurringEventFields({ recurrence, updateRecurrence, error, setError, f
         </div>
       </div>
 
+      {/* end date field or number of occurrences field*/}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+        {/* if end date mode, show the end date field it not show the number of occurrences field*/}
         {recurrence.endMode === "date" ? (
           <div>
             <label
@@ -117,6 +142,7 @@ function RecurringEventFields({ recurrence, updateRecurrence, error, setError, f
         )}
       </div>
 
+      {/* days of the week field */}
       <div>
         <p className="block text-sm font-medium text-app-text mb-2">
           Repeat On <span className="text-app-rose">*</span>
